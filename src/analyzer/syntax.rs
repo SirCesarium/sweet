@@ -25,10 +25,10 @@ pub fn count_imports(content: &str, extension: &str) -> usize {
         }
         "py" => {
             let python_regexes = PY_RE.get_or_init(|| {
-                vec!(
+                vec![
                     Regex::new(r"^import\s+").expect("Valid regex"),
                     Regex::new(r"^from\s+\w+\s+import").expect("Valid regex"),
-                )
+                ]
             });
             let regex_refs: Vec<&Regex> = python_regexes.iter().collect();
             count_matches(content, &regex_refs)
