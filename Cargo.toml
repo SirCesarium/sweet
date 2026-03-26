@@ -2,5 +2,13 @@
 name = "swt"
 version = "0.1.0"
 edition = "2024"
+authors = ["SirCesarium <contact.cesarmarcano@gmail.com>"]
+description = "🍬 Sweet: A blazing-fast code health and architecture analyzer."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/SirCesarium/sweet"
+homepage = "https://github.com/SirCesarium/sweet"
+keywords = ["cli", "static-analysis", "code-quality", "metrics", "architecture"]
+categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
