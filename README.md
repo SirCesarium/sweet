@@ -4,7 +4,7 @@
 
 `swt` is a high-performance analyzer designed to keep your project's architecture clean. It scans your codebase to identify sustainability risks, tangled dependencies, and complex logic patterns that hinder long-term development.
 
-## 🍭 The Sweet Index
+## 🍭 Sweet Index
 
 `swt` evaluates your files based on a health threshold. It's not just about finding bugs; it's about identifying code that is becoming a burden to your team.
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 🍭 Key Features
+## Key Features
 
 *   **Sustainability Audits:** Automatically find files that have grown beyond manageable limits.
 *   **Decoupling Tracking:** Detect excessive dependencies and imports that make code hard to isolate.
@@ -24,7 +24,7 @@
 *   **Multilingual Support:** Native understanding of Rust, TypeScript, JavaScript, Java, C#, and Python.
 *   **Automation Ready:** Designed for CI/CD with dedicated JSON reporting and minimalist output modes.
 
-## 🍭 Performance
+## Performance
 
 `swt` is engineered for instant feedback. It processes thousands of files in milliseconds, making it ideal for large monorepos and pre-commit hooks.
 
