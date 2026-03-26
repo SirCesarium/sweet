@@ -1,36 +1,43 @@
 # 🍬 swt (Sweet)
 
-**Architectural health and maintainability analyzer.**
+**Turn code maintainability into a measurable metric.**
 
-`swt` is a high-performance tool designed to help developers monitor code quality and project structure. It identifies complex files, tangled dependencies, and deeply nested logic, providing actionable insights into your project's maintainability.
+`swt` is a high-performance analyzer designed to keep your project's architecture clean. It scans your codebase to identify sustainability risks, tangled dependencies, and complex logic patterns that hinder long-term development.
 
-## Features
+## 🍭 The Sweet Index
 
-- **Project Health Analysis:** Quickly scan directories to find files that have become too large or difficult to maintain.
-- **Dependency Tracking:** Identify files with excessive imports or high coupling across multiple languages.
-- **Complexity Detection:** Spot "God functions" and overly complex logic through deep nesting analysis.
-- **Comment Stripping:** Remove comments and trailing whitespace from source files while optionally preserving documentation.
-- **Broad Language Support:** Native support for Rust, TypeScript, JavaScript, Java, C#, and Python.
-- **Flexible Configuration:** Define custom quality thresholds globally or per language using a simple configuration file.
-- **CI/CD Integration:** Automated reporting via JSON and a clean, minimalist output mode for build pipelines.
+`swt` evaluates your files based on a health threshold. It's not just about finding bugs; it's about identifying code that is becoming a burden to your team.
 
-## Benchmarks
+| Status | Meaning | Action |
+| :--- | :--- | :--- |
+| **Sweet** 🍭 | Balanced, cohesive, and easy to test. | Keep it up! |
+| **Bitter** 🍋 | Overly complex, high coupling, or "God File" patterns. | Needs refactoring. |
 
-`swt` provides near-instant analysis even for very large projects.
+---
 
-### Local Performance
-Results for the current project:
+## 🍭 Key Features
 
+*   **Sustainability Audits:** Automatically find files that have grown beyond manageable limits.
+*   **Decoupling Tracking:** Detect excessive dependencies and imports that make code hard to isolate.
+*   **Logic Simplification:** Spot deeply nested functions and "God-logic" blocks before they become technical debt.
+*   **Source Cleanup:** A precision tool to strip comments and normalize whitespace for cleaner source distribution.
+*   **Multilingual Support:** Native understanding of Rust, TypeScript, JavaScript, Java, C#, and Python.
+*   **Automation Ready:** Designed for CI/CD with dedicated JSON reporting and minimalist output modes.
+
+## 🍭 Performance
+
+`swt` is engineered for instant feedback. It processes thousands of files in milliseconds, making it ideal for large monorepos and pre-commit hooks.
+
+### Benchmarks (current project)
 ```bash
 Benchmark 1: swt .
   Time (mean ± σ):       4.2 ms ±   0.6 ms
   Range (min … max):     3.2 ms …   6.9 ms
 ```
 
-### Scalability
-Analysis of a system with over 13,000 source files:
-- **Execution Time:** ~744ms
-- **Processing Rate:** ~18,000 files/sec
+### Scalability at 13,000+ files
+*   **Execution Time:** ~744ms
+*   **Processing Rate:** ~18,000 files/sec
 
 ## Installation
 
@@ -42,28 +49,31 @@ cargo install swt
 
 ## Usage
 
-### Scan Project
-Analyze the current directory and sort files by maintenance priority:
+### Analyze Project
+Scan the current directory and list files by maintenance priority:
 ```bash
 swt .
 ```
 
-### Remove Comments
-Clean a source file by stripping comments:
+### Strip Comments
+Clean a source file by removing comments and normalizing whitespace:
 ```bash
 swt --uncomment src/main.rs
 ```
-*Use `--aggressive` to also remove documentation comments.*
+*Use `--aggressive` to also remove documentation headers* (like Rust Doc comments `///` or JSDoc `/** */`)
 
-### Export Data
-Generate a JSON report for external processing:
+### Automated Reporting
+Export metrics to JSON for integration with other tools:
 ```bash
+swt --json
+
+# You can also generate a JSON file:
 swt --json reports.json
 ```
 
 ## Configuration
 
-Customize health thresholds via a `.swtrc` file:
+Control the health thresholds using a `.swtrc` file in your project root:
 
 ```json
 {
@@ -71,8 +81,8 @@ Customize health thresholds via a `.swtrc` file:
   "thresholds": {
     "global": { "max_lines": 200, "max_depth": 5 },
     "overrides": {
-      "java": { "max_imports": 50 },
-      "rust": { "max_imports": 15 }
+      "rust": { "max_imports": 15 },
+      "java": { "max_imports": 50 }
     }
   }
 }
@@ -80,4 +90,4 @@ Customize health thresholds via a `.swtrc` file:
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
