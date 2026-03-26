@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config",
+  "description": "Global configuration for the Sweet analyzer.",
+  "type": "object",
+  "properties": {
+    "exclude": {
+      "description": "List of directory or file patterns to exclude from analysis.",
+      "type": "array",
+      "default": [
+        "node_modules",
+        "vendor",
+        "dist",
+        "target",
+        "__pycache__",
+        "build",
+        ".git"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "thresholds": {
+      "description": "Threshold configurations, including global defaults and language overrides.",
+      "$ref": "#/$defs/ThresholdsConfig",
+      "default": {
+        "global": {
+          "max_depth": 4,
+          "max_imports": 20,
+          "max_lines": 200
+        },
+        "overrides": {}
+      }
+    }
+  },
+  "$defs": {
+    "PartialThresholds": {
+      "description": "A partial set of thresholds used for overrides.",
+      "type": "object",
+      "properties": {
+        "max_depth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        },
+        "max_imports": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        },
+        "max_lines": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        }
+      }
+    },
+    "Thresholds": {
+      "description": "Thresholds defines the limits for various code metrics.\n\nIf a file exceeds any of these values, it is considered \"bitter\".",
+      "type": "object",
+      "properties": {
+        "max_depth": {
+          "description": "Maximum nesting depth (indentation level) allowed.",
+          "type": "integer",
+          "format": "uint",
+          "default": 4,
+          "minimum": 0
+        },
+        "max_imports": {
+          "description": "Maximum number of imports allowed in a single file.",
+          "type": "integer",
+          "format": "uint",
+          "default": 20,
+          "minimum": 0
+        },
+        "max_lines": {
+          "description": "Maximum number of lines allowed in a single file.",
+          "type": "integer",
+          "format": "uint",
+          "default": 200,
+          "minimum": 0
+        }
+      }
+    },
+    "ThresholdsConfig": {
+      "description": "Holds global thresholds and specific overrides for different file extensions.",
+      "type": "object",
+      "properties": {
+        "global": {
+          "description": "Default thresholds applied to all supported files.",
+          "$ref": "#/$defs/Thresholds",
+          "default": {
+            "max_depth": 4,
+            "max_imports": 20,
+            "max_lines": 200
+          }
+        },
+        "overrides": {
+          "description": "Language-specific overrides (e.g., \"java\", \"rs\").",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PartialThresholds"
+          },
+          "default": {}
+        }
+      }
+    }
+  }
+}

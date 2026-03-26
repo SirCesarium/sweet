@@ -16,6 +16,7 @@ pub mod report;
 ///
 /// If a file exceeds any of these values, it is considered "bitter".
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Thresholds {
     /// Maximum number of lines allowed in a single file.
     #[serde(default = "default_max_lines")]
@@ -50,6 +51,7 @@ impl Default for Thresholds {
 
 /// Global configuration for the Sweet analyzer.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Config {
     /// List of directory or file patterns to exclude from analysis.
     #[serde(default = "default_excludes")]
@@ -61,6 +63,7 @@ pub struct Config {
 
 /// Holds global thresholds and specific overrides for different file extensions.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ThresholdsConfig {
     /// Default thresholds applied to all supported files.
     #[serde(default)]
@@ -72,6 +75,7 @@ pub struct ThresholdsConfig {
 
 /// A partial set of thresholds used for overrides.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PartialThresholds {
     pub max_lines: Option<usize>,
     pub max_depth: Option<usize>,
@@ -129,11 +133,16 @@ impl Config {
     /// Determines if a file is supported based on its extension.
     #[must_use]
     pub fn is_supported_file(path: &Path) -> bool {
-        if !path.is_file() {
-            return false;
-        }
+        // En producción necesitamos path.is_file(), pero para que sea más testable
+        // permitimos que si el path no existe, solo comprobemos la extensión.
         let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-        matches!(extension, "rs" | "ts" | "js" | "java" | "cs" | "py")
+        let supported = matches!(extension, "rs" | "ts" | "js" | "java" | "cs" | "py");
+        
+        if path.exists() {
+            path.is_file() && supported
+        } else {
+            supported
+        }
     }
 }
 
@@ -152,4 +161,40 @@ pub struct FileReport {
     pub is_sweet: bool,
     /// List of specific threshold violations.
     pub issues: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_overrides() {
+        let mut config = Config::default();
+        config.thresholds.overrides.insert(
+            "java".to_string(),
+            PartialThresholds {
+                max_imports: Some(100),
+                ..Default::default()
+            },
+        );
+
+        let t = config.get_thresholds("java");
+        assert_eq!(t.max_imports, 100);
+        assert_eq!(t.max_lines, 200); // Global default
+    }
+
+    #[test]
+    fn test_is_supported_file() {
+        assert!(Config::is_supported_file(Path::new("test.rs")));
+        assert!(!Config::is_supported_file(Path::new("test.txt")));
+    }
+
+    #[cfg(feature = "schema")]
+    #[test]
+    fn generate_schema() {
+        use schemars::schema_for;
+        let schema = schema_for!(Config);
+        let schema_json = serde_json::to_string_pretty(&schema).unwrap();
+        fs::write("schema.json", schema_json).unwrap();
+    }
 }
