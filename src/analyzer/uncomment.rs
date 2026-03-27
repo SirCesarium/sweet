@@ -74,23 +74,29 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
         }
 
         // Detect Comment starts (C-style and Python)
-        if is_c_style && current == '/'
-            && let Some(&c) = next {
-                let is_block = c == '*';
-                let is_line = c == '/';
-                if is_block || is_line {
-                    let is_doc = next_next.is_some_and(|&n| n == '*' || n == '/' || n == '!');
-                    if !aggressive && is_doc {
-                        result.push('/');
-                        result.push(c);
-                        i += 2;
-                        continue;
-                    }
-                    if is_block { in_block_comment = true; } else { in_line_comment = true; }
+        if is_c_style
+            && current == '/'
+            && let Some(&c) = next
+        {
+            let is_block = c == '*';
+            let is_line = c == '/';
+            if is_block || is_line {
+                let is_doc = next_next.is_some_and(|&n| n == '*' || n == '/' || n == '!');
+                if !aggressive && is_doc {
+                    result.push('/');
+                    result.push(c);
                     i += 2;
                     continue;
                 }
+                if is_block {
+                    in_block_comment = true;
+                } else {
+                    in_line_comment = true;
+                }
+                i += 2;
+                continue;
             }
+        }
 
         if is_python && current == '#' {
             in_line_comment = true;
@@ -140,9 +146,17 @@ mod tests {
 
     #[test]
     fn test_uncommenting() {
-        check("fn main() {\n    // comment\n    /* block */\n    let x = 5;\n}", "fn main() {\n\n    let x = 5;\n}", true);
+        check(
+            "fn main() {\n    // comment\n    /* block */\n    let x = 5;\n}",
+            "fn main() {\n\n    let x = 5;\n}",
+            true,
+        );
         check("/// doc\nfn main() {}", "/// doc\nfn main() {}", false);
         check("/// doc\nfn main() {}", "fn main() {}", true);
-        check("let s = \"http://example.com\";", "let s = \"http://example.com\";", true);
+        check(
+            "let s = \"http://example.com\";",
+            "let s = \"http://example.com\";",
+            true,
+        );
     }
 }

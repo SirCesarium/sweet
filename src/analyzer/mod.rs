@@ -28,7 +28,7 @@ pub fn analyze_file(path: &Path, config: &Config) -> Option<FileReport> {
     let lines = volume::count_lines(&content);
     let imports = syntax::count_imports(&content, extension);
     let max_depth = complexity::analyze_depth(&content);
-    
+
     let clean_content = uncomment::remove_comments(&content, extension, true);
     let repetition = repetition::analyze_repetition(&clean_content);
 

@@ -3,14 +3,19 @@
 use std::collections::HashMap;
 
 /// Analyzes the percentage of repetitive code in the content.
-/// 
+///
 /// It uses a sliding window of lines to find duplicate blocks.
 /// Lines are normalized (whitespace removed, lowercased) for fuzzy matching.
 #[must_use]
 pub fn analyze_repetition(content: &str) -> f64 {
     let lines: Vec<String> = content
         .lines()
-        .map(|l| l.chars().filter(|c| !c.is_whitespace()).collect::<String>().to_lowercase())
+        .map(|l| {
+            l.chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>()
+                .to_lowercase()
+        })
         .collect();
 
     if lines.is_empty() {
@@ -27,7 +32,7 @@ pub fn analyze_repetition(content: &str) -> f64 {
 
     for i in 0..=lines.len() - window_size {
         let chunk: Vec<String> = lines[i..i + window_size].to_vec();
-        
+
         // Skip chunks that only contain very short lines (e.g., just brackets)
         if chunk.iter().all(|l| l.len() < 3) {
             continue;
@@ -57,13 +62,15 @@ mod tests {
 
     #[test]
     fn test_repetition() {
-        let no_rep = "fn main() {\n    let x = 1;\n    let y = 2;\n    let z = 3;\n    let w = 4;\n}";
+        let no_rep =
+            "fn main() {\n    let x = 1;\n    let y = 2;\n    let z = 3;\n    let w = 4;\n}";
         assert!(analyze_repetition(no_rep).abs() < f64::EPSILON);
 
         let rep = "let a = 1; let b = 2; let c = 3; let d = 4; let a = 1; let b = 2; let c = 3; let d = 4;";
         assert!(analyze_repetition(rep) > 0.0);
 
-        let fuzzy = "let a = 1; let b = 2; let c = 3; let d = 4; let a=1; let b=2; let c=3; let d=4;";
+        let fuzzy =
+            "let a = 1; let b = 2; let c = 3; let d = 4; let a=1; let b=2; let c=3; let d=4;";
         assert!(analyze_repetition(fuzzy) > 0.0);
     }
 }
