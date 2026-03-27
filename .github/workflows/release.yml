@@ -52,7 +52,7 @@ jobs:
             os: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 🛠️ Refinery Build
         uses: sircesarium/refinery-rs@main
@@ -63,7 +63,7 @@ jobs:
           export-libs: false
 
       - name: 📦 Upload to Bridge
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bin-${{ matrix.target }}
           path: artifacts/*
@@ -73,7 +73,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 🚢 Publish to Crates.io
         env:
@@ -81,7 +81,7 @@ jobs:
         run: cargo publish
 
       - name: 📥 Download All Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: all-artifacts
           merge-multiple: true
