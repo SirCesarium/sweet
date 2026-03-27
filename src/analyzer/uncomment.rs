@@ -74,12 +74,12 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
         }
 
         // Detect Comment starts (C-style and Python)
-        if is_c_style && current == '/' {
-            if let Some(&c) = next {
+        if is_c_style && current == '/'
+            && let Some(&c) = next {
                 let is_block = c == '*';
                 let is_line = c == '/';
                 if is_block || is_line {
-                    let is_doc = next_next.map_or(false, |&n| n == '*' || n == '/' || n == '!');
+                    let is_doc = next_next.is_some_and(|&n| n == '*' || n == '/' || n == '!');
                     if !aggressive && is_doc {
                         result.push('/');
                         result.push(c);
@@ -91,7 +91,6 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
                     continue;
                 }
             }
-        }
 
         if is_python && current == '#' {
             in_line_comment = true;
