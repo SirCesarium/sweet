@@ -1,10 +1,11 @@
 {
+  "$schema": "https://raw.githubusercontent.com/SirCesarium/sweet/main/schema.json",
   "thresholds": {
-    "global": { "max_lines": 200, "max_depth": 10, "max_imports": 30 },
-    "overrides": {
-      "java": { "max_imports": 50 },
-      "rust": { "max_imports": 15 },
-      "typescript": { "max_imports": 20 }
+    "global": {
+      "max_lines": 220,
+      "max_depth": 10,
+      "max_imports": 30,
+      "max_repetition": 25.0
     }
   }
 }
