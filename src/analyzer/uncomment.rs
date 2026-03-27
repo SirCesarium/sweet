@@ -73,35 +73,26 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
             continue;
         }
 
-        // Detect Block Comment start
-        if is_c_style && current == '/' && next == Some(&'*') {
-            let is_doc = next_next == Some(&'*') || next_next == Some(&'!');
-            if !aggressive && is_doc {
-                result.push('/');
-                result.push('*');
-                i += 2;
-                continue;
+        // Detect Comment starts (C-style and Python)
+        if is_c_style && current == '/' {
+            if let Some(&c) = next {
+                let is_block = c == '*';
+                let is_line = c == '/';
+                if is_block || is_line {
+                    let is_doc = next_next.map_or(false, |&n| n == '*' || n == '/' || n == '!');
+                    if !aggressive && is_doc {
+                        result.push('/');
+                        result.push(c);
+                        i += 2;
+                        continue;
+                    }
+                    if is_block { in_block_comment = true; } else { in_line_comment = true; }
+                    i += 2;
+                    continue;
+                }
             }
-            in_block_comment = true;
-            i += 2;
-            continue;
         }
 
-        // Detect Line Comment start
-        if is_c_style && current == '/' && next == Some(&'/') {
-            let is_doc = next_next == Some(&'/') || next_next == Some(&'!');
-            if !aggressive && is_doc {
-                result.push('/');
-                result.push('/');
-                i += 2;
-                continue;
-            }
-            in_line_comment = true;
-            i += 2;
-            continue;
-        }
-
-        // Python style line comments
         if is_python && current == '#' {
             in_line_comment = true;
             i += 1;
@@ -144,30 +135,15 @@ fn normalize_whitespace(content: &str) -> String {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_remove_c_style_comments() {
-        let code =
-            "fn main() {\n    // line comment\n    /* block\n       comment */\n    let x = 5;\n}";
-        let expected = "fn main() {\n\n    let x = 5;\n}";
-        assert_eq!(remove_comments(code, "rs", true), expected);
+    fn check(code: &str, expected: &str, aggressive: bool) {
+        assert_eq!(remove_comments(code, "rs", aggressive), expected);
     }
 
     #[test]
-    fn test_preserve_doc_comments() {
-        let code = "/// doc\nfn main() {}";
-        assert_eq!(remove_comments(code, "rs", false), code);
-    }
-
-    #[test]
-    fn test_aggressive_doc_comments() {
-        let code = "/// doc\nfn main() {}";
-        let expected = "fn main() {}";
-        assert_eq!(remove_comments(code, "rs", true), expected);
-    }
-
-    #[test]
-    fn test_preserve_strings() {
-        let code = "let s = \"http://example.com\";";
-        assert_eq!(remove_comments(code, "rs", true), code);
+    fn test_uncommenting() {
+        check("fn main() {\n    // comment\n    /* block */\n    let x = 5;\n}", "fn main() {\n\n    let x = 5;\n}", true);
+        check("/// doc\nfn main() {}", "/// doc\nfn main() {}", false);
+        check("/// doc\nfn main() {}", "fn main() {}", true);
+        check("let s = \"http://example.com\";", "let s = \"http://example.com\";", true);
     }
 }
