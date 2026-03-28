@@ -95,6 +95,12 @@ swt --uncomment src/lib.rs --aggressive
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's adding support for a new language, fixing a bug, or improving the documentation, please check our [Contributing Guide](./CONTRIBUTING.md) to get started.
+
+---
+
 ## 📜 License
 
 Licensed under the [MIT License](./LICENSE).
