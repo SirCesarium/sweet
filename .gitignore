@@ -1,1 +1,13 @@
 /target
+/target-debug
+/target-release
+
+# VS Code Extension
+editors/vscode/node_modules/
+editors/vscode/dist/
+editors/vscode/out/
+editors/vscode/.vscode-test/
+
+# Bun
+bun.lockb
+.bun-build/
