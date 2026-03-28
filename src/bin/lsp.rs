@@ -1,13 +1,70 @@
+use std::path::Path;
+use swt::Config;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
-    InitializeParams, InitializeResult, InitializedParams, MessageType, ServerCapabilities,
-    TextDocumentSyncCapability, TextDocumentSyncKind,
+    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
+    InitializeParams, InitializeResult, InitializedParams, MessageType, Position, Range,
+    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 #[derive(Debug)]
 struct Backend {
     client: Client,
+}
+
+impl Backend {
+    async fn validate_document(&self, uri: Url, content: &str) {
+        let path = match uri.to_file_path() {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+
+        if !Config::is_supported_file(&path) {
+            return;
+        }
+
+        let config = Config::load(&path);
+        let extension = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or_default();
+        let thresholds = config.get_thresholds(extension);
+
+        let report = swt::analyzer::analyze_content(content, extension, &thresholds, &path, &config);
+
+        let mut diagnostics = Vec::new();
+
+        for issue in report.issues {
+            diagnostics.push(Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 80)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                message: format!("🍬 Sweet: {issue}"),
+                source: Some("sweet".to_string()),
+                ..Default::default()
+            });
+        }
+
+        for duplicate in report.duplicates {
+            diagnostics.push(Diagnostic {
+                range: Range::new(
+                    Position::new(duplicate.line as u32 - 1, 0),
+                    Position::new(duplicate.line as u32 - 1, 80),
+                ),
+                severity: Some(DiagnosticSeverity::HINT),
+                message: format!(
+                    "🍬 Sweet: Code duplication detected! (repeated in {} other places)",
+                    duplicate.occurrences.len()
+                ),
+                source: Some("sweet".to_string()),
+                ..Default::default()
+            });
+        }
+
+        self.client
+            .publish_diagnostics(uri, diagnostics, None)
+            .await;
+    }
 }
 
 #[tower_lsp::async_trait]
@@ -30,8 +87,42 @@ impl LanguageServer for Backend {
             .await;
     }
 
+    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        self.validate_document(params.text_document.uri, &params.text_document.text)
+            .await;
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        if let Some(change) = params.content_changes.first() {
+            self.validate_document(params.text_document.uri, &change.text)
+                .await;
+        }
+    }
+
     async fn shutdown(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tower_lsp::LspService;
+
+    #[tokio::test]
+    async fn test_initialization() {
+        let (service, _) = LspService::new(|client| Backend { client });
+        let params = InitializeParams::default();
+        let result = service.inner().initialize(params).await.unwrap();
+        assert!(result.capabilities.text_document_sync.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_unsupported_file() {
+        let (service, _) = LspService::new(|client| Backend { client });
+        let uri = Url::parse("file:///test.txt").unwrap();
+        // Should not panic or return error, just skip
+        service.inner().validate_document(uri, "test").await;
     }
 }
 

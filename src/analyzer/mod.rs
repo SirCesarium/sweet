@@ -63,13 +63,14 @@ pub fn analyze_file(path: &Path, _base_config: &Config) -> Option<(FileReport, S
 }
 
 /// Dispatches content to specialized analyzers and aggregates results.
-fn analyze_content(
+#[must_use]
+pub fn analyze_content(
     content: &str,
     extension: &str,
     thresholds: &crate::Thresholds,
-    path: &Path,
-    config: &Config,
-) -> FileReport {
+    path: &std::path::Path,
+    config: &crate::Config,
+) -> crate::FileReport {
     let registry = LanguageRegistry::get();
     let indent_size = registry
         .get_by_extension(extension)
