@@ -10,21 +10,23 @@ use std::sync::OnceLock;
 pub trait Language: Send + Sync {
     /// Friendly name of the language (e.g., "Rust").
     fn name(&self) -> &'static str;
-    
+
     /// File extensions associated with this language.
     fn extensions(&self) -> &'static [&'static str];
-    
+
     /// Delimiter for single-line comments.
     fn line_comment(&self) -> Option<&'static str>;
-    
+
     /// Start and end delimiters for multi-line block comments.
     fn block_comment(&self) -> Option<(&'static str, &'static str)>;
-    
+
     /// Keywords used to declare imports or dependencies.
     fn import_keywords(&self) -> &'static [&'static str];
 
     /// Number of spaces representing one level of indentation.
-    fn indent_size(&self) -> usize { 4 }
+    fn indent_size(&self) -> usize {
+        4
+    }
 }
 
 /// Thread-safe registry for managing supported languages.
@@ -68,7 +70,9 @@ impl LanguageRegistry {
     /// Resolves a language strategy by file extension.
     #[must_use]
     pub fn get_by_extension(&self, ext: &str) -> Option<&dyn Language> {
-        self.extension_map.get(ext).map(|&i| self.languages[i].as_ref())
+        self.extension_map
+            .get(ext)
+            .map(|&i| self.languages[i].as_ref())
     }
 
     /// Returns a list of all supported file extensions.

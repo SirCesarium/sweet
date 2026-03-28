@@ -1,7 +1,7 @@
 //! Terminal-based report rendering.
 
 use crate::FileReport;
-use console::{style, Emoji};
+use console::{Emoji, style};
 use std::io::{self, BufWriter, Write};
 
 /// Renders a summary of file reports to the terminal.

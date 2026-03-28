@@ -22,13 +22,21 @@ pub struct Thresholds {
 }
 
 #[must_use]
-pub const fn default_max_lines() -> usize { 250 }
+pub const fn default_max_lines() -> usize {
+    250
+}
 #[must_use]
-pub const fn default_max_depth() -> usize { 5 }
+pub const fn default_max_depth() -> usize {
+    5
+}
 #[must_use]
-pub const fn default_max_imports() -> usize { 20 }
+pub const fn default_max_imports() -> usize {
+    20
+}
 #[must_use]
-pub const fn default_max_repetition() -> f64 { 10.0 }
+pub const fn default_max_repetition() -> f64 {
+    10.0
+}
 
 impl Default for Thresholds {
     fn default() -> Self {

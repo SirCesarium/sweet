@@ -152,7 +152,10 @@ impl AnalysisEngine {
                 if let Some(pos) = occurrences.iter().find(|(p, _)| p == &report.path)
                     && let Ok(content) = std::fs::read_to_string(&report.path)
                 {
-                    let lines: Vec<String> = content.lines().map(std::string::ToString::to_string).collect();
+                    let lines: Vec<String> = content
+                        .lines()
+                        .map(std::string::ToString::to_string)
+                        .collect();
                     let start_line = pos.1;
                     if start_line > 0 && start_line + 3 <= lines.len() {
                         let snippet = lines[start_line - 1..start_line + 3].join("\n");

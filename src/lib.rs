@@ -1,6 +1,11 @@
 //! Hierarchical configuration and global state management.
 
-#![deny(clippy::panic, clippy::unwrap_used, clippy::expect_used, clippy::pedantic)]
+#![deny(
+    clippy::panic,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::pedantic
+)]
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
