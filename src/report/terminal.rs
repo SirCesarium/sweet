@@ -1,12 +1,7 @@
-//! Terminal-based report rendering.
-
 use crate::FileReport;
 use console::{Emoji, style};
 use std::io::{self, BufWriter, Write};
 
-/// Renders a summary of file reports to the terminal.
-///
-/// Supports a "quiet" mode for CI environments, providing a minimal output.
 pub fn print_summary(reports: &[FileReport], quiet: bool) {
     let stdout = io::stdout();
     let mut handle = BufWriter::new(stdout.lock());
@@ -55,11 +50,15 @@ pub fn print_summary(reports: &[FileReport], quiet: bool) {
     let _ = handle.flush();
 }
 
-/// Renders a single row in the terminal report.
 fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
     let path_str = report.path.to_string_lossy();
 
-    // Priority Emojis (Easter Eggs).
+    let (lemon_t, bitter_t) = if let Some(config) = &report.config {
+        (config.ui.lemon_threshold, config.ui.bitter_threshold)
+    } else {
+        (200, 400)
+    };
+
     let mut special_emoji = "";
     if report.imports == 67 {
         special_emoji = " 👐";
@@ -69,11 +68,10 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
         special_emoji = " 🤮";
     }
 
-    // Line Volume Emojis.
     let line_emoji = if special_emoji.is_empty() {
-        if report.lines > 400 {
+        if report.lines > bitter_t {
             " 🤕"
-        } else if report.lines > 200 {
+        } else if report.lines > lemon_t {
             " 🍋"
         } else {
             ""
@@ -121,7 +119,6 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
     }
 }
 
-/// Renders a minimal summary for quiet mode.
 fn print_quiet_summary<W: Write>(handle: &mut W, reports: &[FileReport]) {
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
 
@@ -153,7 +150,6 @@ fn print_quiet_summary<W: Write>(handle: &mut W, reports: &[FileReport]) {
     );
 }
 
-/// Renders the final inspirational or warning message.
 fn render_final_message<W: Write>(handle: &mut W, bitter_count: usize) {
     if bitter_count == 0 {
         let _ = writeln!(
