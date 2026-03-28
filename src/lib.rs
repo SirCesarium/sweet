@@ -19,7 +19,6 @@ pub mod report;
 // Re-export core configuration types for easier access.
 pub use config::Config;
 pub use config::thresholds::{PartialThresholds, Thresholds, ThresholdsConfig};
-pub use config::ui::UIConfig;
 
 /// Analysis results for a single source file.
 #[derive(Debug, Serialize, Deserialize, Clone)]

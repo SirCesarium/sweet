@@ -32,14 +32,6 @@
         },
         "overrides": {}
       }
-    },
-    "ui": {
-      "description": "Terminal UI settings.",
-      "$ref": "#/$defs/UIConfig",
-      "default": {
-        "bitter_threshold": 400,
-        "lemon_threshold": 200
-      }
     }
   },
   "$defs": {
@@ -134,26 +126,6 @@
             "$ref": "#/$defs/PartialThresholds"
           },
           "default": {}
-        }
-      }
-    },
-    "UIConfig": {
-      "description": "Visual feedback configuration for terminal reporting.",
-      "type": "object",
-      "properties": {
-        "bitter_threshold": {
-          "description": "Line threshold to trigger the 'bitter' error status.",
-          "type": "integer",
-          "format": "uint",
-          "default": 400,
-          "minimum": 0
-        },
-        "lemon_threshold": {
-          "description": "Line threshold to trigger the 'lemon' warning.",
-          "type": "integer",
-          "format": "uint",
-          "default": 200,
-          "minimum": 0
         }
       }
     }

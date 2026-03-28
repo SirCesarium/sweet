@@ -88,10 +88,6 @@ swt --uncomment src/lib.rs --aggressive
     "overrides": {
       "rust": { "max_imports": 15 }
     }
-  },
-  "ui": {
-    "lemon_threshold": 200,
-    "bitter_threshold": 400
   }
 }
 ```

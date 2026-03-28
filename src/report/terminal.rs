@@ -50,21 +50,10 @@ pub fn print_summary(reports: &[FileReport], quiet: bool) {
 
 fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
     let path_str = report.path.to_string_lossy();
-    let (lemon_t, bitter_t) = report.config.as_ref().map_or((200, 400), |c| {
-        (c.ui.lemon_threshold, c.ui.bitter_threshold)
-    });
-
-    let line_emoji = if report.lines > bitter_t {
-        " 🤕"
-    } else if report.lines > lemon_t {
-        " 🍋"
-    } else {
-        ""
-    };
 
     let stats = format!(
-        "{} lines · {} imports · depth {} · {:.1}% repeat{}",
-        report.lines, report.imports, report.max_depth, report.repetition, line_emoji
+        "{} lines · {} imports · depth {} · {:.1}% repeat",
+        report.lines, report.imports, report.max_depth, report.repetition
     );
 
     if report.is_sweet {
@@ -78,7 +67,7 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
     } else {
         let _ = writeln!(
             handle,
-            "{} {:<30} {}",
+            "{} {:<30} {} 🍋",
             style(" ✘ ").red().bold(),
             style(path_str).magenta().bold(),
             style(stats).dim()

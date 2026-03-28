@@ -1,7 +1,6 @@
 //! Global configuration orchestrator and hierarchical loader.
 
 pub mod thresholds;
-pub mod ui;
 
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -10,7 +9,6 @@ use thresholds::{
     Thresholds, ThresholdsConfig, default_max_depth, default_max_imports, default_max_lines,
     default_max_repetition,
 };
-use ui::{UIConfig, default_bitter_threshold, default_lemon_threshold};
 
 /// Global analyzer configuration.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -22,9 +20,6 @@ pub struct Config {
     /// Global and language-specific threshold overrides.
     #[serde(default)]
     pub thresholds: ThresholdsConfig,
-    /// Terminal UI settings.
-    #[serde(default)]
-    pub ui: UIConfig,
 }
 
 fn default_excludes() -> Vec<String> {
@@ -89,13 +84,6 @@ impl Config {
 
         for (ext, partial) in other.thresholds.overrides {
             self.thresholds.overrides.insert(ext, partial);
-        }
-
-        if other.ui.lemon_threshold != default_lemon_threshold() {
-            self.ui.lemon_threshold = other.ui.lemon_threshold;
-        }
-        if other.ui.bitter_threshold != default_bitter_threshold() {
-            self.ui.bitter_threshold = other.ui.bitter_threshold;
         }
     }
 
