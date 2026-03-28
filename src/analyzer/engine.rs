@@ -102,7 +102,7 @@ impl AnalysisEngine {
         }
 
         if inspect {
-            self.finalize_inspection(&mut reports, &global_chunks);
+            Self::finalize_inspection(&mut reports, &global_chunks);
         }
 
         Self::sort_reports(&mut reports);
@@ -140,7 +140,7 @@ impl AnalysisEngine {
     }
 
     /// Finalizes the inspection by mapping duplicated chunks back to source files.
-    fn finalize_inspection(&self, reports: &mut [FileReport], global_chunks: &ChunkMap) {
+    fn finalize_inspection(reports: &mut [FileReport], global_chunks: &ChunkMap) {
         let duplicates: Duplicates = global_chunks
             .iter()
             .filter(|entry| entry.value().len() > 1)
@@ -152,7 +152,7 @@ impl AnalysisEngine {
                 if let Some(pos) = occurrences.iter().find(|(p, _)| p == &report.path)
                     && let Ok(content) = std::fs::read_to_string(&report.path)
                 {
-                    let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+                    let lines: Vec<String> = content.lines().map(std::string::ToString::to_string).collect();
                     let start_line = pos.1;
                     if start_line > 0 && start_line + 3 <= lines.len() {
                         let snippet = lines[start_line - 1..start_line + 3].join("\n");

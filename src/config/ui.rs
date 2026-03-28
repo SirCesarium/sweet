@@ -14,12 +14,10 @@ pub struct UIConfig {
     pub bitter_threshold: usize,
 }
 
-pub const fn default_lemon_threshold() -> usize {
-    200
-}
-pub const fn default_bitter_threshold() -> usize {
-    400
-}
+#[must_use]
+pub const fn default_lemon_threshold() -> usize { 200 }
+#[must_use]
+pub const fn default_bitter_threshold() -> usize { 400 }
 
 impl Default for UIConfig {
     fn default() -> Self {

@@ -6,9 +6,8 @@ use crate::languages::LanguageRegistry;
 #[must_use]
 pub fn count_imports(content: &str, extension: &str) -> usize {
     let registry = LanguageRegistry::get();
-    let lang = match registry.get_by_extension(extension) {
-        Some(l) => l,
-        None => return 0,
+    let Some(lang) = registry.get_by_extension(extension) else {
+        return 0;
     };
 
     let keywords = lang.import_keywords();

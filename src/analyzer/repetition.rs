@@ -1,7 +1,7 @@
 //! Duplicate code detection using sliding window hashing.
 
-use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 /// Measured repetition results for a specific file.
@@ -19,18 +19,13 @@ pub struct RepetitionResult {
 /// Uses normalized line hashing and a sliding window to identify duplicate code chunks.
 #[must_use]
 pub fn analyze_repetition(content: &str) -> RepetitionResult {
-    let lines_content: Vec<String> = content
-        .lines()
+    let lines_content: Vec<String> = content.lines()
         .filter(|l| !l.contains("@sweetignore"))
-        .map(|l| l.to_string())
+        .map(std::string::ToString::to_string)
         .collect();
-
+    
     if lines_content.is_empty() {
-        return RepetitionResult {
-            percentage: 0.0,
-            hashes: vec![],
-            line_map: vec![],
-        };
+        return RepetitionResult { percentage: 0.0, hashes: vec![], line_map: vec![] };
     }
 
     let hashes: Vec<u64> = lines_content
@@ -40,11 +35,7 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
 
     let window_size = 4;
     if hashes.len() < window_size {
-        return RepetitionResult {
-            percentage: 0.0,
-            hashes,
-            line_map: lines_content,
-        };
+        return RepetitionResult { percentage: 0.0, hashes, line_map: lines_content };
     }
 
     let mut repetitive_lines = vec![false; hashes.len()];
@@ -72,6 +63,8 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
     }
 
     let repeated_count = repetitive_lines.iter().filter(|&&r| r).count();
+    
+    #[allow(clippy::cast_precision_loss)]
     let percentage = (repeated_count as f64 / hashes.len() as f64) * 100.0;
 
     RepetitionResult {
@@ -82,6 +75,7 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
 }
 
 /// Computes a hash for a line after removing whitespace and converting to lowercase.
+#[must_use]
 pub fn hash_normalized_line(line: &str) -> u64 {
     let mut s = DefaultHasher::new();
     for c in line.chars().filter(|c| !c.is_whitespace()) {
@@ -98,8 +92,7 @@ mod tests {
 
     #[test]
     fn test_repetition() {
-        let no_rep =
-            "fn main() {\n    let x = 1;\n    let y = 2;\n    let z = 3;\n    let w = 4;\n}";
+        let no_rep = "fn main() {\n    let x = 1;\n    let y = 2;\n    let z = 3;\n    let w = 4;\n}";
         assert!(analyze_repetition(no_rep).percentage.abs() < f64::EPSILON);
 
         let rep = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;";

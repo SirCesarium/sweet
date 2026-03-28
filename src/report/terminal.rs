@@ -1,7 +1,7 @@
 //! Terminal-based report rendering.
 
 use crate::FileReport;
-use console::{Emoji, style};
+use console::{style, Emoji};
 use std::io::{self, BufWriter, Write};
 
 /// Renders a summary of file reports to the terminal.
@@ -123,7 +123,7 @@ fn render_issues<W: Write>(handle: &mut W, report: &FileReport) {
                 handle,
                 "        {} {}",
                 style(" also in:").dim(),
-                style(format!("{}:{}", path.display(), line)).cyan()
+                style(format!("{}:{line}", path.display())).cyan()
             );
         }
     }
@@ -149,10 +149,8 @@ fn print_quiet_summary<W: Write>(handle: &mut W, reports: &[FileReport]) {
     let total = reports.len();
     let _ = writeln!(
         handle,
-        "\nSummary: {} files analyzed, {} sweet, {} bitter",
-        style(total).bold(),
+        "\nSummary: {total} files analyzed, {} sweet, {bitter_count} bitter",
         style(total - bitter_count).green(),
-        style(bitter_count).red().bold()
     );
 }
 
@@ -172,11 +170,10 @@ fn render_final_message<W: Write>(handle: &mut W, bitter_count: usize) {
             handle,
             "{}",
             style(format!(
-                " {} Some files need a little more sugar...",
-                lollipop
+                " {lollipop} Some files need a little more sugar...",
             ))
             .magenta()
             .bold()
         );
-    };
+    }
 }

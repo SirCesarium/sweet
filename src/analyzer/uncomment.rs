@@ -8,9 +8,8 @@ use crate::languages::LanguageRegistry;
 #[must_use]
 pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> String {
     let registry = LanguageRegistry::get();
-    let lang = match registry.get_by_extension(extension) {
-        Some(l) => l,
-        None => return content.to_string(),
+    let Some(lang) = registry.get_by_extension(extension) else {
+        return content.to_string();
     };
 
     let mut result = String::with_capacity(content.len());
