@@ -1,5 +1,7 @@
 //! Sweet CLI: Blazing-fast code health analyzer.
 
+#![deny(clippy::pedantic)]
+
 use clap::Parser;
 use console::style;
 use std::fs;

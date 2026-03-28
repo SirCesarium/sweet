@@ -1,3 +1,5 @@
+#![deny(clippy::pedantic)]
+
 use swt::Config;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
@@ -14,9 +16,8 @@ struct Backend {
 
 impl Backend {
     async fn validate_document(&self, uri: Url, content: &str) {
-        let path = match uri.to_file_path() {
-            Ok(p) => p,
-            Err(_) => return,
+        let Ok(path) = uri.to_file_path() else {
+            return;
         };
 
         if !Config::is_supported_file(&path) {
@@ -46,6 +47,7 @@ impl Backend {
         }
 
         for duplicate in report.duplicates {
+            #[allow(clippy::cast_possible_truncation)]
             let start_line = (duplicate.line as u32).saturating_sub(1);
             diagnostics.push(Diagnostic {
                 range: Range::new(Position::new(start_line, 0), Position::new(start_line, 80)),
