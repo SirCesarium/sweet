@@ -125,10 +125,12 @@ impl AnalysisEngine {
 
         if inspect {
             let extension = path.extension()?.to_str()?;
+            let thresholds = self.config.get_thresholds(extension);
             let clean = super::uncomment::remove_comments(&content, extension, true);
-            let rep_res = repetition::analyze_repetition(&clean);
+            let rep_res =
+                repetition::analyze_repetition(&clean, thresholds.min_duplicate_lines);
 
-            let window_size = 4;
+            let window_size = thresholds.min_duplicate_lines;
             if rep_res.hashes.len() >= window_size {
                 for i in 0..=rep_res.hashes.len() - window_size {
                     let chunk = rep_res.hashes[i..i + window_size].to_vec();
@@ -139,6 +141,7 @@ impl AnalysisEngine {
                 }
             }
         }
+
 
         Some(ProcessedFile {
             lines: content.lines().map(ToString::to_string).collect(),
@@ -156,20 +159,44 @@ impl AnalysisEngine {
 
         for pf in processed_files {
             for (_, occurrences) in &duplicates {
-                if let Some(pos) = occurrences.iter().find(|(p, _)| p == &pf.report.path) {
-                    let start_line = pos.1;
+                // Find occurrences within this specific file.
+                let mut local_positions: Vec<usize> = occurrences
+                    .iter()
+                    .filter(|(path, _)| path == &pf.report.path)
+                    .map(|(_, line)| *line)
+                    .collect();
+
+                // Sort and deduplicate local positions to handle overlapping windows.
+                local_positions.sort_unstable();
+                local_positions.dedup();
+
+                if local_positions.is_empty() {
+                    continue;
+                }
+
+                for &start_line in &local_positions {
+                    // Check if this chunk is already accounted for in this report to avoid spam.
+                    if pf.report.duplicates.iter().any(|d| d.line == start_line) {
+                        continue;
+                    }
+
                     if start_line > 0 && start_line + 3 <= pf.lines.len() {
                         let snippet = pf.lines[start_line - 1..start_line + 3].join("\n");
 
-                        pf.report.duplicates.push(RepetitionDetail {
-                            content: snippet,
-                            line: start_line,
-                            occurrences: occurrences
-                                .iter()
-                                .filter(|(p, l)| p != &pf.report.path || l != &start_line)
-                                .cloned()
-                                .collect(),
-                        });
+                        // Find other occurrences (excluding current one in current file).
+                        let others: Vec<(PathBuf, usize)> = occurrences
+                            .iter()
+                            .filter(|(p, l)| p != &pf.report.path || *l != start_line)
+                            .cloned()
+                            .collect();
+
+                        if !others.is_empty() {
+                            pf.report.duplicates.push(RepetitionDetail {
+                                content: snippet,
+                                line: start_line,
+                                occurrences: others,
+                            });
+                        }
                     }
                 }
             }

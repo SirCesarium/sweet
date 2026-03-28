@@ -28,7 +28,8 @@
           "max_depth": 5,
           "max_imports": 20,
           "max_lines": 250,
-          "max_repetition": 10.0
+          "max_repetition": 10.0,
+          "min_duplicate_lines": 4
         },
         "overrides": {}
       }
@@ -69,6 +70,14 @@
             "null"
           ],
           "format": "double"
+        },
+        "min_duplicate_lines": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
         }
       }
     },
@@ -102,6 +111,13 @@
           "type": "number",
           "format": "double",
           "default": 10.0
+        },
+        "min_duplicate_lines": {
+          "description": "Minimum identical lines to trigger repetition detection.",
+          "type": "integer",
+          "format": "uint",
+          "default": 4,
+          "minimum": 0
         }
       }
     },
@@ -116,7 +132,8 @@
             "max_depth": 5,
             "max_imports": 20,
             "max_lines": 250,
-            "max_repetition": 10.0
+            "max_repetition": 10.0,
+            "min_duplicate_lines": 4
           }
         },
         "overrides": {

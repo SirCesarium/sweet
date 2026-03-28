@@ -83,7 +83,8 @@ swt --uncomment src/lib.rs --aggressive
     "global": { 
       "max_lines": 250, 
       "max_depth": 5, 
-      "max_repetition": 10.0 
+      "max_repetition": 10.0,
+      "min_duplicate_lines": 4
     },
     "overrides": {
       "rust": { "max_imports": 15 }

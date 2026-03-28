@@ -104,6 +104,9 @@ impl Config {
             if let Some(v) = over.max_repetition {
                 t.max_repetition = v;
             }
+            if let Some(v) = over.min_duplicate_lines {
+                t.min_duplicate_lines = v;
+            }
         }
         t
     }

@@ -81,7 +81,7 @@ pub fn analyze_content(
     let max_depth = complexity::analyze_depth(content, indent_size);
 
     let clean_content = uncomment::remove_comments(content, extension, true);
-    let rep_res = repetition::analyze_repetition(&clean_content);
+    let rep_res = repetition::analyze_repetition(&clean_content, thresholds.min_duplicate_lines);
 
     let mut issues = Vec::new();
 

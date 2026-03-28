@@ -18,7 +18,7 @@ pub struct RepetitionResult {
 ///
 /// Uses normalized line hashing and a sliding window to identify duplicate code chunks.
 #[must_use]
-pub fn analyze_repetition(content: &str) -> RepetitionResult {
+pub fn analyze_repetition(content: &str, min_duplicate_lines: usize) -> RepetitionResult {
     let lines_content: Vec<String> = content
         .lines()
         .filter(|l| !l.contains("@sweetignore"))
@@ -38,8 +38,7 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
         .map(|l| hash_normalized_line(l))
         .collect();
 
-    let window_size = 4;
-    if hashes.len() < window_size {
+    if hashes.len() < min_duplicate_lines {
         return RepetitionResult {
             percentage: 0.0,
             hashes,
@@ -50,10 +49,10 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
     let mut repetitive_lines = vec![false; hashes.len()];
     let mut chunks: HashMap<&[u64], Vec<usize>> = HashMap::with_capacity(hashes.len());
 
-    for i in 0..=hashes.len() - window_size {
-        let chunk = &hashes[i..i + window_size];
+    for i in 0..=hashes.len() - min_duplicate_lines {
+        let chunk = &hashes[i..i + min_duplicate_lines];
 
-        if lines_content[i..i + window_size]
+        if lines_content[i..i + min_duplicate_lines]
             .iter()
             .all(|l| l.trim().len() < 3)
         {
@@ -65,7 +64,7 @@ pub fn analyze_repetition(content: &str) -> RepetitionResult {
 
     for occurrences in chunks.values().filter(|v| v.len() > 1) {
         for &start_idx in occurrences {
-            for r in &mut repetitive_lines[start_idx..start_idx + window_size] {
+            for r in &mut repetitive_lines[start_idx..start_idx + min_duplicate_lines] {
                 *r = true;
             }
         }
@@ -103,9 +102,9 @@ mod tests {
     fn test_repetition() {
         let no_rep =
             "fn main() {\n    let x = 1;\n    let y = 2;\n    let z = 3;\n    let w = 4;\n}";
-        assert!(analyze_repetition(no_rep).percentage.abs() < f64::EPSILON);
+        assert!(analyze_repetition(no_rep, 4).percentage.abs() < f64::EPSILON);
 
         let rep = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;";
-        assert!(analyze_repetition(rep).percentage > 0.0);
+        assert!(analyze_repetition(rep, 4).percentage > 0.0);
     }
 }
