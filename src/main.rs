@@ -34,9 +34,13 @@ struct Args {
     #[arg(long, value_name = "FILE")]
     uncomment: Option<PathBuf>,
 
-    /// Aggressively remove doc comments (///, /**) during uncommenting.
+    /// remove even doc comments (///, /**) when using --uncomment.
     #[arg(long)]
     aggressive: bool,
+
+    /// inspect and show detailed code duplication/repetition.
+    #[arg(long)]
+    inspect: bool,
 }
 
 fn main() -> std::process::ExitCode {
@@ -56,7 +60,7 @@ fn main() -> std::process::ExitCode {
         show_branding();
     }
 
-    let reports = engine.run(args.quiet, args.json.is_none());
+    let reports = engine.run(args.quiet, args.json.is_none(), args.inspect);
 
     if reports.is_empty() {
         if !args.quiet {

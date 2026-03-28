@@ -33,6 +33,19 @@ pub struct FileReport {
     pub issues: Vec<String>,
     /// Effective configuration used for this file.
     pub config: Option<Config>,
+    /// Details about duplicated code chunks.
+    pub duplicates: Vec<RepetitionDetail>,
+}
+
+/// Details about a specific duplicated code chunk.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RepetitionDetail {
+    /// The actual code content that is repeated.
+    pub content: String,
+    /// Starting line number in the file.
+    pub line: usize,
+    /// Other files where this same chunk appears.
+    pub occurrences: Vec<(PathBuf, usize)>,
 }
 
 #[cfg(test)]
