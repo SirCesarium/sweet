@@ -1,5 +1,7 @@
 //! Hierarchical configuration and global state management.
 
+#![deny(clippy::panic, clippy::unwrap_used, clippy::expect_used)]
+
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -51,7 +53,6 @@ pub struct RepetitionDetail {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn test_config_overrides() {
@@ -77,10 +78,14 @@ mod tests {
 
     #[cfg(feature = "schema")]
     #[test]
-    fn generate_schema() {
+    fn generate_schema() -> miette::Result<()> {
         use schemars::schema_for;
+        use std::fs;
         let schema = schema_for!(Config);
-        let schema_json = serde_json::to_string_pretty(&schema).unwrap();
-        fs::write("schema.json", schema_json).unwrap();
+        let schema_json = serde_json::to_string_pretty(&schema)
+            .map_err(|e| miette::miette!("Failed to serialize schema: {}", e))?;
+        fs::write("schema.json", schema_json)
+            .map_err(|e| miette::miette!("Failed to write schema.json: {}", e))?;
+        Ok(())
     }
 }

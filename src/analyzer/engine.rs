@@ -37,11 +37,10 @@ impl AnalysisEngine {
             None
         } else {
             let sp = ProgressBar::new_spinner();
-            sp.set_style(
-                ProgressStyle::with_template("{spinner:.magenta} {msg}")
-                    .expect("Valid template")
-                    .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
-            );
+            let style = ProgressStyle::with_template("{spinner:.magenta} {msg}")
+                .unwrap_or_else(|_| ProgressStyle::default_spinner())
+                .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
+            sp.set_style(style);
             sp.set_message("Discovering project files...");
             sp.enable_steady_tick(Duration::from_millis(80));
             Some(sp)
@@ -178,13 +177,13 @@ impl AnalysisEngine {
             return None;
         }
         let pb = ProgressBar::new(len as u64);
-        pb.set_style(
-            ProgressStyle::with_template(
-                "{prefix:>12.cyan.bold} [{bar:40.magenta/dim}] {pos}/{len} {msg}",
-            )
-            .expect("Valid template")
-            .progress_chars("⭓⭔-"),
-        );
+        let style = ProgressStyle::with_template(
+            "{prefix:>12.cyan.bold} [{bar:40.magenta/dim}] {pos}/{len} {msg}",
+        )
+        .unwrap_or_else(|_| ProgressStyle::default_bar())
+        .progress_chars("⭓⭔-");
+
+        pb.set_style(style);
         pb.set_prefix("Analyzing");
         Some(pb)
     }
