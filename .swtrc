@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/SirCesarium/sweet/main/schema.json",
   "thresholds": {
     "global": {
-      "max_lines": 220,
+      "max_lines": 200,
       "max_depth": 10,
       "max_imports": 30,
       "max_repetition": 25.0

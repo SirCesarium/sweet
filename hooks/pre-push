@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+echo "🔍 Running pre-push checks..."
+
+cargo fmt -- --check
+cargo clippy -- -D warnings
+cargo run -- . --quiet
+
+echo "✅ Quality checks passed."
