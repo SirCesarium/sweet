@@ -64,9 +64,71 @@ pub struct ThresholdsConfig {
     /// Default thresholds for all files.
     #[serde(default)]
     pub global: Thresholds,
-    /// Language-specific overrides indexed by extension.
+    /// Language-specific overrides.
     #[serde(default)]
-    pub overrides: HashMap<String, PartialThresholds>,
+    pub overrides: ThresholdsOverrides,
+}
+
+/// Known and custom language overrides.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ThresholdsOverrides {
+    /// Rust overrides (.rs)
+    pub rs: Option<PartialThresholds>,
+    /// Python overrides (.py)
+    pub py: Option<PartialThresholds>,
+    /// JavaScript overrides (.js, .mjs, .cjs)
+    pub js: Option<PartialThresholds>,
+    /// TypeScript overrides (.ts, .tsx)
+    pub ts: Option<PartialThresholds>,
+    /// Java overrides (.java)
+    pub java: Option<PartialThresholds>,
+    /// C# overrides (.cs)
+    pub cs: Option<PartialThresholds>,
+    /// Custom overrides for any other extension.
+    #[serde(flatten)]
+    pub custom: HashMap<String, PartialThresholds>,
+}
+
+impl ThresholdsOverrides {
+    /// Returns the override for a specific extension if it exists.
+    #[must_use]
+    pub fn get(&self, ext: &str) -> Option<&PartialThresholds> {
+        match ext {
+            "rs" => self.rs.as_ref(),
+            "py" => self.py.as_ref(),
+            "js" | "mjs" | "cjs" => self.js.as_ref(),
+            "ts" | "tsx" => self.ts.as_ref(),
+            "java" => self.java.as_ref(),
+            "cs" => self.cs.as_ref(),
+            _ => self.custom.get(ext),
+        }
+    }
+
+    /// Extends the current overrides with another set.
+    pub fn extend(&mut self, other: Self) {
+        if other.rs.is_some() {
+            self.rs = other.rs;
+        }
+        if other.py.is_some() {
+            self.py = other.py;
+        }
+        if other.js.is_some() {
+            self.js = other.js;
+        }
+        if other.ts.is_some() {
+            self.ts = other.ts;
+        }
+        if other.java.is_some() {
+            self.java = other.java;
+        }
+        if other.cs.is_some() {
+            self.cs = other.cs;
+        }
+        for (ext, partial) in other.custom {
+            self.custom.insert(ext, partial);
+        }
+    }
 }
 
 /// Sparse threshold structure for specific overrides.

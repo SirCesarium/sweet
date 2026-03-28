@@ -31,7 +31,14 @@
           "max_repetition": 10.0,
           "min_duplicate_lines": 4
         },
-        "overrides": {}
+        "overrides": {
+          "cs": null,
+          "java": null,
+          "js": null,
+          "py": null,
+          "rs": null,
+          "ts": null
+        }
       }
     }
   },
@@ -137,13 +144,92 @@
           }
         },
         "overrides": {
-          "description": "Language-specific overrides indexed by extension.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/PartialThresholds"
-          },
-          "default": {}
+          "description": "Language-specific overrides.",
+          "$ref": "#/$defs/ThresholdsOverrides",
+          "default": {
+            "cs": null,
+            "java": null,
+            "js": null,
+            "py": null,
+            "rs": null,
+            "ts": null
+          }
         }
+      }
+    },
+    "ThresholdsOverrides": {
+      "description": "Known and custom language overrides.",
+      "type": "object",
+      "properties": {
+        "cs": {
+          "description": "C# overrides (.cs)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "java": {
+          "description": "Java overrides (.java)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "js": {
+          "description": "JavaScript overrides (.js, .mjs, .cjs)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "py": {
+          "description": "Python overrides (.py)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rs": {
+          "description": "Rust overrides (.rs)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ts": {
+          "description": "TypeScript overrides (.ts, .tsx)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/PartialThresholds"
       }
     }
   }

@@ -61,13 +61,10 @@ mod tests {
     #[test]
     fn test_config_overrides() {
         let mut config = Config::default();
-        config.thresholds.overrides.insert(
-            "java".to_string(),
-            PartialThresholds {
-                max_imports: Some(100),
-                ..Default::default()
-            },
-        );
+        config.thresholds.overrides.java = Some(PartialThresholds {
+            max_imports: Some(100),
+            ..Default::default()
+        });
 
         let t = config.get_thresholds("java");
         assert_eq!(t.max_imports, 100);

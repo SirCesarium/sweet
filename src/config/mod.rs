@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 use thresholds::{
     Thresholds, ThresholdsConfig, default_max_depth, default_max_imports, default_max_lines,
-    default_max_repetition,
+    default_max_repetition, default_min_duplicate_lines,
 };
 
 /// Global analyzer configuration.
@@ -81,10 +81,11 @@ impl Config {
         if (og.max_repetition - default_max_repetition()).abs() > f64::EPSILON {
             self.thresholds.global.max_repetition = og.max_repetition;
         }
-
-        for (ext, partial) in other.thresholds.overrides {
-            self.thresholds.overrides.insert(ext, partial);
+        if og.min_duplicate_lines != default_min_duplicate_lines() {
+            self.thresholds.global.min_duplicate_lines = og.min_duplicate_lines;
         }
+
+        self.thresholds.overrides.extend(other.thresholds.overrides);
     }
 
     /// Resolves effective thresholds for a specific file extension.
