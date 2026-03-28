@@ -93,8 +93,7 @@ fn analyze_content(
     let max_depth = complexity::analyze_depth(content, indent_size);
 
     let clean_content = uncomment::remove_comments(content, extension, true);
-
-    let repetition = repetition::analyze_repetition(&clean_content);
+    let rep_res = repetition::analyze_repetition(&clean_content);
 
     let mut issues = Vec::new();
 
@@ -116,10 +115,10 @@ fn analyze_content(
             max_depth, thresholds.max_depth
         ));
     }
-    if repetition > thresholds.max_repetition {
+    if rep_res.percentage > thresholds.max_repetition {
         issues.push(format!(
             "High code repetition: {:.1}% (max {:.1}%)",
-            repetition, thresholds.max_repetition
+            rep_res.percentage, thresholds.max_repetition
         ));
     }
 
@@ -128,9 +127,10 @@ fn analyze_content(
         lines,
         imports,
         max_depth,
-        repetition,
+        repetition: rep_res.percentage,
         is_sweet: issues.is_empty(),
         issues,
         config: Some(config.clone()),
+        duplicates: Vec::new(),
     }
 }

@@ -1,11 +1,19 @@
 //! High-level analysis orchestration and parallel file processing.
 
-use crate::{Config, FileReport};
+use crate::analyzer::repetition;
+use crate::{Config, FileReport, RepetitionDetail};
+use dashmap::DashMap;
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
+
+/// Type alias for mapping code chunks to their project-wide occurrences.
+type ChunkMap = DashMap<Vec<u64>, Vec<(PathBuf, usize)>>;
+/// Type alias for a list of duplicated chunks and their occurrences.
+type Duplicates = Vec<(Vec<u64>, Vec<(PathBuf, usize)>)>;
 
 /// The `AnalysisEngine` orchestrates the collection and parallel analysis of project files.
 pub struct AnalysisEngine {
@@ -45,7 +53,6 @@ impl AnalysisEngine {
         }
 
         let (tx, rx) = std::sync::mpsc::channel();
-
         walk_builder.build_parallel().run(|| {
             let tx = tx.clone();
             Box::new(move |result| {
@@ -57,7 +64,6 @@ impl AnalysisEngine {
         });
 
         drop(tx);
-
         let entries: Vec<PathBuf> = rx.into_iter().collect();
 
         if let Some(sp) = spinner {
@@ -67,21 +73,21 @@ impl AnalysisEngine {
         entries
     }
 
-    /// Executes the analysis phase in parallel using the Rayon thread pool.
+    /// Executes the analysis phase and performs global repetition inspection if requested.
     #[must_use]
-    pub fn run(&self, quiet: bool, show_progress: bool) -> Vec<FileReport> {
+    pub fn run(&self, quiet: bool, show_progress: bool, inspect: bool) -> Vec<FileReport> {
         let entries = self.collect_files(quiet);
-
         if entries.is_empty() {
             return Vec::new();
         }
 
         let pb = Self::create_progress_bar(entries.len(), quiet, show_progress);
+        let global_chunks: Arc<ChunkMap> = Arc::new(DashMap::new());
 
         let mut reports: Vec<FileReport> = entries
             .par_iter()
             .filter_map(|path| {
-                let res = super::analyze_file(path, &self.config);
+                let res = self.analyze_and_collect(path, &global_chunks, inspect);
                 if let Some(ref pb) = pb {
                     pb.inc(1);
                     if let Some(ref r) = res {
@@ -96,16 +102,81 @@ impl AnalysisEngine {
             pb.finish_and_clear();
         }
 
+        if inspect {
+            self.finalize_inspection(&mut reports, &global_chunks);
+        }
+
         Self::sort_reports(&mut reports);
         reports
     }
 
-    /// Initializes a progress bar for the analysis phase.
+    /// Analyzes a file and optionally collects chunk hashes for global duplication detection.
+    fn analyze_and_collect(
+        &self,
+        path: &Path,
+        global_chunks: &ChunkMap,
+        inspect: bool,
+    ) -> Option<FileReport> {
+        let content = std::fs::read_to_string(path).ok()?;
+        let report = super::analyze_file(path, &self.config)?;
+
+        if inspect {
+            let extension = path.extension()?.to_str()?;
+            let clean = super::uncomment::remove_comments(&content, extension, true);
+            let rep_res = repetition::analyze_repetition(&clean);
+
+            let window_size = 4;
+            if rep_res.hashes.len() >= window_size {
+                for i in 0..=rep_res.hashes.len() - window_size {
+                    let chunk = rep_res.hashes[i..i + window_size].to_vec();
+                    global_chunks
+                        .entry(chunk)
+                        .or_default()
+                        .push((path.to_path_buf(), i + 1));
+                }
+            }
+        }
+
+        Some(report)
+    }
+
+    /// Finalizes the inspection by mapping duplicated chunks back to source files.
+    fn finalize_inspection(&self, reports: &mut [FileReport], global_chunks: &ChunkMap) {
+        let duplicates: Duplicates = global_chunks
+            .iter()
+            .filter(|entry| entry.value().len() > 1)
+            .map(|entry| (entry.key().clone(), entry.value().clone()))
+            .collect();
+
+        for report in reports {
+            for (_, occurrences) in &duplicates {
+                if let Some(pos) = occurrences.iter().find(|(p, _)| p == &report.path)
+                    && let Ok(content) = std::fs::read_to_string(&report.path)
+                {
+                    let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+                    let start_line = pos.1;
+                    if start_line > 0 && start_line + 3 <= lines.len() {
+                        let snippet = lines[start_line - 1..start_line + 3].join("\n");
+
+                        report.duplicates.push(RepetitionDetail {
+                            content: snippet,
+                            line: start_line,
+                            occurrences: occurrences
+                                .iter()
+                                .filter(|(p, l)| p != &report.path || l != &start_line)
+                                .cloned()
+                                .collect(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     fn create_progress_bar(len: usize, quiet: bool, show_progress: bool) -> Option<ProgressBar> {
         if quiet || !show_progress {
             return None;
         }
-
         let pb = ProgressBar::new(len as u64);
         pb.set_style(
             ProgressStyle::with_template(
@@ -118,7 +189,6 @@ impl AnalysisEngine {
         Some(pb)
     }
 
-    /// Sorts reports prioritized by "bitterness", issue count, and file volume.
     fn sort_reports(reports: &mut [FileReport]) {
         reports.sort_by(|a, b| {
             b.is_sweet
