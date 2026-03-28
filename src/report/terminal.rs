@@ -1,7 +1,7 @@
 //! Terminal-based report rendering.
 
 use crate::FileReport;
-use console::{style, Emoji};
+use console::{Emoji, style};
 use std::io::{self, BufWriter, Write};
 
 /// Renders a summary of file reports to the terminal.
@@ -22,7 +22,11 @@ pub fn print_summary(reports: &[FileReport], quiet: bool) {
     let sweet_count = reports.iter().filter(|r| r.is_sweet).count();
     let bitter_count = total - sweet_count;
 
-    let _ = writeln!(handle, "\n{}", style(" Results Summary ").bold().cyan().on_black());
+    let _ = writeln!(
+        handle,
+        "\n{}",
+        style(" Results Summary ").bold().cyan().on_black()
+    );
     let _ = writeln!(handle, "{}", style("─".repeat(60)).dim());
 
     for report in reports {
@@ -31,8 +35,13 @@ pub fn print_summary(reports: &[FileReport], quiet: bool) {
 
     let _ = writeln!(handle, "{}", style("─".repeat(60)).dim());
 
-    let summary_text = format!("Total: {total}  |  Sweet: {sweet_count}  |  Bitter: {bitter_count}");
-    let icon = if bitter_count == 0 { candy } else { lemon_emoji };
+    let summary_text =
+        format!("Total: {total}  |  Sweet: {sweet_count}  |  Bitter: {bitter_count}");
+    let icon = if bitter_count == 0 {
+        candy
+    } else {
+        lemon_emoji
+    };
     let _ = writeln!(handle, "\n{} {}\n", icon, style(summary_text).bold());
 
     render_final_message(&mut handle, bitter_count);
@@ -59,9 +68,21 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
     );
 
     if report.is_sweet {
-        let _ = writeln!(handle, "{} {:<30} {}", style(" ✦ ").green().bold(), style(path_str).white(), style(stats).dim());
+        let _ = writeln!(
+            handle,
+            "{} {:<30} {}",
+            style(" ✦ ").green().bold(),
+            style(path_str).white(),
+            style(stats).dim()
+        );
     } else {
-        let _ = writeln!(handle, "{} {:<30} {}", style(" ✘ ").red().bold(), style(path_str).magenta().bold(), style(stats).dim());
+        let _ = writeln!(
+            handle,
+            "{} {:<30} {}",
+            style(" ✘ ").red().bold(),
+            style(path_str).magenta().bold(),
+            style(stats).dim()
+        );
         render_issues(handle, report);
     }
 }
@@ -73,20 +94,37 @@ fn render_issues<W: Write>(handle: &mut W, report: &FileReport) {
     for (i, issue) in report.issues.iter().enumerate() {
         let is_last = i == issue_count - 1 && dup_count == 0;
         let connector = if is_last { " ╰─ " } else { " ├─ " };
-        let _ = writeln!(handle, "    {}{}", style(connector).dim(), style(issue).yellow().italic());
+        let _ = writeln!(
+            handle,
+            "    {}{}",
+            style(connector).dim(),
+            style(issue).yellow().italic()
+        );
     }
 
     for (i, dup) in report.duplicates.iter().enumerate() {
         let is_last = i == dup_count - 1;
         let connector = if is_last { " ╰─ " } else { " ├─ " };
-        let _ = writeln!(handle, "    {}{}", style(connector).dim(), style(format!("Duplicate found at line {}:", dup.line)).red().bold());
-        
+        let _ = writeln!(
+            handle,
+            "    {}{}",
+            style(connector).dim(),
+            style(format!("Duplicate found at line {}:", dup.line))
+                .red()
+                .bold()
+        );
+
         for line in dup.content.lines().take(3) {
             let _ = writeln!(handle, "        {}", style(line).dim().italic());
         }
 
         for (path, line) in &dup.occurrences {
-            let _ = writeln!(handle, "        {} {}", style(" also in:").dim(), style(format!("{}:{}", path.display(), line)).cyan());
+            let _ = writeln!(
+                handle,
+                "        {} {}",
+                style(" also in:").dim(),
+                style(format!("{}:{}", path.display(), line)).cyan()
+            );
         }
     }
     let _ = writeln!(handle);
@@ -94,21 +132,51 @@ fn render_issues<W: Write>(handle: &mut W, report: &FileReport) {
 
 fn print_quiet_summary<W: Write>(handle: &mut W, reports: &[FileReport]) {
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
-    if bitter_count == 0 { return; }
+    if bitter_count == 0 {
+        return;
+    }
 
     for report in reports.iter().filter(|r| !r.is_sweet) {
-        let _ = writeln!(handle, "{} {}: {}", style("BITTER").red().bold(), style(report.path.display()).white(), style(report.issues.join(", ")).yellow().italic());
+        let _ = writeln!(
+            handle,
+            "{} {}: {}",
+            style("BITTER").red().bold(),
+            style(report.path.display()).white(),
+            style(report.issues.join(", ")).yellow().italic()
+        );
     }
 
     let total = reports.len();
-    let _ = writeln!(handle, "\nSummary: {} files analyzed, {} sweet, {} bitter", style(total).bold(), style(total - bitter_count).green(), style(bitter_count).red().bold());
+    let _ = writeln!(
+        handle,
+        "\nSummary: {} files analyzed, {} sweet, {} bitter",
+        style(total).bold(),
+        style(total - bitter_count).green(),
+        style(bitter_count).red().bold()
+    );
 }
 
 fn render_final_message<W: Write>(handle: &mut W, bitter_count: usize) {
-    let msg = if bitter_count == 0 {
-        style(" ✨ Your code is perfectly sweet! ✨ ").green().bold().italic()
+    if bitter_count == 0 {
+        let _ = writeln!(
+            handle,
+            "{}",
+            style(" ✨ Your code is perfectly sweet! ✨ ")
+                .green()
+                .bold()
+                .italic()
+        );
     } else {
-        style(" ⚠  Some files need a little more sugar...").magenta().bold()
+        let lollipop = Emoji("🍭 ", "!");
+        let _ = writeln!(
+            handle,
+            "{}",
+            style(format!(
+                " {} Some files need a little more sugar...",
+                lollipop
+            ))
+            .magenta()
+            .bold()
+        );
     };
-    let _ = writeln!(handle, "{}", msg);
 }
