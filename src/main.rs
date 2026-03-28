@@ -1,6 +1,4 @@
-//! Main entry point for the Sweet CLI.
-//!
-//! Handles CLI argument parsing and orchestrates the `AnalysisEngine` and Reporting.
+//! Sweet CLI: Blazing-fast code health analyzer.
 
 use clap::Parser;
 use console::style;
@@ -16,20 +14,19 @@ const ASCII: &str = r"
  /__  /| |/ |/ /  __/  __/ /_  
 /____/ |__/|__/\___/\___/\__/  ";
 
-/// CLI Arguments for Sweet.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to analyze.
+    /// Path to analyze (default: current directory).
     #[arg(default_value = ".")]
     path: PathBuf,
 
-    /// Output report in JSON format (optional: write to file).
+    /// Output report in JSON format.
     #[allow(clippy::option_option)]
     #[arg(long, value_name = "FILE")]
     json: Option<Option<PathBuf>>,
 
-    /// Disable ASCII art and decorations (CI mode).
+    /// Minimal output for CI environments.
     #[arg(short, long)]
     quiet: bool,
 
@@ -37,7 +34,7 @@ struct Args {
     #[arg(long, value_name = "FILE")]
     uncomment: Option<PathBuf>,
 
-    /// Remove even doc comments (///, /**) when using --uncomment.
+    /// Aggressively remove doc comments (///, /**) during uncommenting.
     #[arg(long)]
     aggressive: bool,
 }
@@ -45,7 +42,6 @@ struct Args {
 fn main() -> std::process::ExitCode {
     let args = Args::parse();
 
-    // Handle specialized tool: Uncommenting.
     if let Some(file_path) = args.uncomment {
         if handle_uncomment(&file_path, args.aggressive) {
             return std::process::ExitCode::SUCCESS;
@@ -53,25 +49,20 @@ fn main() -> std::process::ExitCode {
         return std::process::ExitCode::FAILURE;
     }
 
-    // Initialize configuration and analysis engine.
     let config = Config::load(&args.path);
     let engine = AnalysisEngine::new(args.path.clone(), config);
 
-    // Provide visual feedback if appropriate.
     if !args.quiet && args.json.is_none() {
         show_branding();
     }
 
-    // Execute core logic.
     let reports = engine.run(args.quiet, args.json.is_none());
 
     if reports.is_empty() {
         if !args.quiet {
             println!(
                 "\n{}",
-                style(" 📭 No supported files found to analyze.")
-                    .yellow()
-                    .bold()
+                style(" 📭 No supported files found.").yellow().bold()
             );
         }
         return std::process::ExitCode::SUCCESS;
@@ -79,7 +70,6 @@ fn main() -> std::process::ExitCode {
 
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
 
-    // Dispatch results to the requested reporting channel.
     if let Some(json_opt) = &args.json {
         handle_json_reporting(&reports, json_opt.as_ref());
     } else {
@@ -93,7 +83,6 @@ fn main() -> std::process::ExitCode {
     }
 }
 
-/// Dispatches JSON reports to a file or stdout.
 fn handle_json_reporting(reports: &[swt::FileReport], json_opt: Option<&PathBuf>) {
     if let Some(path) = json_opt {
         swt::report::json::write_json_report(reports, path);
@@ -102,13 +91,11 @@ fn handle_json_reporting(reports: &[swt::FileReport], json_opt: Option<&PathBuf>
     }
 }
 
-/// Handles the 'uncomment' feature by stripping comments and rewriting the file.
 fn handle_uncomment(path: &Path, aggressive: bool) -> bool {
     match fs::read_to_string(path) {
         Ok(content) => {
             let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
             let clean = swt::analyzer::uncomment::remove_comments(&content, extension, aggressive);
-
             if fs::write(path, clean).is_ok() {
                 println!("{}", style("Uncommented!").cyan().bold());
                 true
@@ -124,7 +111,6 @@ fn handle_uncomment(path: &Path, aggressive: bool) -> bool {
     }
 }
 
-/// Prints the ASCII branding logo.
 fn show_branding() {
     println!("{}", style(ASCII).magenta().bold());
     println!(
