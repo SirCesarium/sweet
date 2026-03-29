@@ -4,7 +4,7 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 
-/// Checks for updates and caches the result. 
+/// Checks for updates and caches the result.
 /// Performs a synchronous network check only if the cache is missing or expired (24h).
 pub fn check_for_updates() {
     let cache_dir = std::env::temp_dir().join("sweet_update_cache");
@@ -33,15 +33,17 @@ pub fn check_for_updates() {
         .repo_name("sweet")
         .build();
 
-    if let Ok(latest) = releases.and_then(|r| r.fetch()) {
-        if let Some(latest_release) = latest.first() {
-            let _ = fs::write(&cache_dir, &latest_release.version);
-            
-            if self_update::version::bump_is_greater(current_version, &latest_release.version)
-                .unwrap_or(false)
-            {
-                print_update_msg(&latest_release.version, current_version);
-            }
+    if let Some(latest_release) = releases
+        .and_then(self_update::backends::github::ReleaseList::fetch)
+        .ok()
+        .and_then(|latest| latest.into_iter().next())
+    {
+        let _ = fs::write(&cache_dir, &latest_release.version);
+
+        if self_update::version::bump_is_greater(current_version, &latest_release.version)
+            .unwrap_or(false)
+        {
+            print_update_msg(&latest_release.version, current_version);
         }
     }
 }
