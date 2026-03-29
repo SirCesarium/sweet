@@ -5,6 +5,7 @@ import {
   languages,
   CompletionItem,
   CompletionItemKind,
+  Range,
   type ExtensionContext,
 } from 'vscode';
 import {
@@ -74,29 +75,54 @@ export function activate(context: ExtensionContext) {
         const linePrefix = line.substring(0, position.character);
 
         // If typing the directive itself
-        if (linePrefix.endsWith('@swt-')) {
+        const swtMatch = /@swt-[\w-]*$/.exec(linePrefix);
+        if (swtMatch) {
+          const startChar = swtMatch.index + 1; // Start after '@'
           const item = new CompletionItem(
             'swt-disable',
             CompletionItemKind.Keyword
           );
           item.documentation = 'Disable specific health checks for this file';
+          item.range = new Range(
+            position.line,
+            startChar,
+            position.line,
+            position.character
+          );
           item.insertText = 'swt-disable ';
           return [item];
         }
 
         // If typing rules after @swt-disable
         if (linePrefix.includes('@swt-disable')) {
-          return [
-            new CompletionItem('max-lines', CompletionItemKind.Enum),
-            new CompletionItem('max-depth', CompletionItemKind.Enum),
-            new CompletionItem('max-imports', CompletionItemKind.Enum),
-            new CompletionItem('max-repetition', CompletionItemKind.Enum),
+          const rules = [
+            'max-lines',
+            'max-depth',
+            'max-imports',
+            'max-repetition',
           ];
+
+          // Find the start of the current word being typed
+          const wordMatch = /[\w-]*$/.exec(linePrefix);
+          const startChar = wordMatch ? wordMatch.index : position.character;
+          const range = new Range(
+            position.line,
+            startChar,
+            position.line,
+            position.character
+          );
+
+          return rules.map((rule) => {
+            const item = new CompletionItem(rule, CompletionItemKind.Enum);
+            item.range = range;
+            return item;
+          });
         }
 
         return undefined;
       },
     },
+    '@',
     '-',
     ' ' // trigger characters
   );
