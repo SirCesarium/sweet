@@ -4,12 +4,13 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 
-/// Checks for updates in a background thread and caches the result.
+/// Checks for updates and caches the result. 
+/// Performs a synchronous network check only if the cache is missing or expired (24h).
 pub fn check_for_updates() {
     let cache_dir = std::env::temp_dir().join("sweet_update_cache");
     let current_version = env!("CARGO_PKG_VERSION");
 
-    // Check cache first (24h TTL)
+    // 1. Try to use existing cache
     if let Ok(cached_version) = fs::read_to_string(&cache_dir) {
         let is_fresh = fs::metadata(&cache_dir)
             .and_then(|m| m.modified())
@@ -26,35 +27,23 @@ pub fn check_for_updates() {
         }
     }
 
-    // Run network check in background
-    std::thread::spawn(move || {
-        let releases = self_update::backends::github::ReleaseList::configure()
-            .repo_owner("SirCesarium")
-            .repo_name("sweet")
-            .build();
+    // 2. Cache missing or expired: Perform synchronous check
+    let releases = self_update::backends::github::ReleaseList::configure()
+        .repo_owner("SirCesarium")
+        .repo_name("sweet")
+        .build();
 
-        if let Some(latest_release) = releases
-            .and_then(self_update::backends::github::ReleaseList::fetch)
-            .ok()
-            .and_then(|latest| {
-                latest.into_iter().find(|r| {
-                    self_update::version::bump_is_greater(current_version, &r.version)
-                        .unwrap_or(false)
-                })
-            })
-        {
+    if let Ok(latest) = releases.and_then(|r| r.fetch()) {
+        if let Some(latest_release) = latest.first() {
             let _ = fs::write(&cache_dir, &latest_release.version);
-        } else if let Some(latest) = self_update::backends::github::ReleaseList::configure()
-            .repo_owner("SirCesarium")
-            .repo_name("sweet")
-            .build()
-            .and_then(self_update::backends::github::ReleaseList::fetch)
-            .ok()
-            .and_then(|r| r.into_iter().next())
-        {
-            let _ = fs::write(&cache_dir, &latest.version);
+            
+            if self_update::version::bump_is_greater(current_version, &latest_release.version)
+                .unwrap_or(false)
+            {
+                print_update_msg(&latest_release.version, current_version);
+            }
         }
-    });
+    }
 }
 
 /// Performs the update process with a beautiful progress bar.
