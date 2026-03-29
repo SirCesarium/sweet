@@ -49,7 +49,7 @@ pub const fn default_min_duplicate_lines() -> usize {
 }
 #[must_use]
 pub const fn default_max_lines_per_function() -> usize {
-    60
+    80
 }
 
 impl Default for Thresholds {
@@ -60,7 +60,7 @@ impl Default for Thresholds {
             max_imports: 25,
             max_repetition: 15.0,
             min_duplicate_lines: 4,
-            max_lines_per_function: 60,
+            max_lines_per_function: 80,
         }
     }
 }
