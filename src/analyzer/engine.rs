@@ -126,11 +126,12 @@ impl AnalysisEngine {
         if inspect {
             let extension = path.extension()?.to_str()?;
             let thresholds = self.config.get_thresholds(extension);
+            let disabled_rules = super::ignore::get_disabled_rules(&content);
             let clean = super::uncomment::remove_comments(&content, extension, true);
             let rep_res = repetition::analyze_repetition(&clean, thresholds.min_duplicate_lines);
 
             let window_size = thresholds.min_duplicate_lines;
-            if rep_res.hashes.len() >= window_size {
+            if !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size {
                 for i in 0..=rep_res.hashes.len() - window_size {
                     let chunk = rep_res.hashes[i..i + window_size].to_vec();
                     global_chunks

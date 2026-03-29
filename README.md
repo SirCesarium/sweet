@@ -157,6 +157,21 @@ jobs:
 }
 ```
 
+### 🍭 In-file Disabling
+
+You can disable specific rules for a single file using comments. This is useful for large legacy files or generated code.
+
+Add a comment like `@swt-disable <rule1> <rule2>` in the first 20 lines of your file:
+
+```rust
+// @swt-disable max-lines max-repetition
+// Your code here...
+```
+
+Supported rules: `max-lines`, `max-depth`, `max-imports`, `max-repetition`.
+
+To ignore a file entirely, use `@sweetignore`.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's adding support for a new language, fixing a bug, or improving the documentation, please check our [Contributing Guide](./CONTRIBUTING.md) to get started.

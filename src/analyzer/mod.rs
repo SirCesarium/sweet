@@ -58,18 +58,28 @@ pub fn analyze_file(path: &Path, _base_config: &Config) -> Option<(FileReport, S
         return None;
     }
 
-    let report = analyze_content(&content, extension, &thresholds, path, &config);
+    let disabled_rules = ignore::get_disabled_rules(&content);
+
+    let report = analyze_content(
+        &content,
+        extension,
+        &thresholds,
+        path,
+        &config,
+        &disabled_rules,
+    );
     Some((report, content))
 }
 
 /// Dispatches content to specialized analyzers and aggregates results.
 #[must_use]
-pub fn analyze_content(
+pub fn analyze_content<S: std::hash::BuildHasher>(
     content: &str,
     extension: &str,
     thresholds: &crate::Thresholds,
     path: &std::path::Path,
     config: &crate::Config,
+    disabled_rules: &std::collections::HashSet<String, S>,
 ) -> crate::FileReport {
     let registry = LanguageRegistry::get();
     let indent_size = registry
@@ -85,25 +95,26 @@ pub fn analyze_content(
 
     let mut issues = Vec::new();
 
-    if lines > thresholds.max_lines {
+    if !disabled_rules.contains("max-lines") && lines > thresholds.max_lines {
         issues.push(format!(
             "File too long: {} lines (max {})",
             lines, thresholds.max_lines
         ));
     }
-    if imports > thresholds.max_imports {
+    if !disabled_rules.contains("max-imports") && imports > thresholds.max_imports {
         issues.push(format!(
             "Too many imports: {} (max {})",
             imports, thresholds.max_imports
         ));
     }
-    if max_depth > thresholds.max_depth {
+    if !disabled_rules.contains("max-depth") && max_depth > thresholds.max_depth {
         issues.push(format!(
             "Excessive nesting: {} levels (max {})",
             max_depth, thresholds.max_depth
         ));
     }
-    if rep_res.percentage > thresholds.max_repetition {
+    if !disabled_rules.contains("max-repetition") && rep_res.percentage > thresholds.max_repetition
+    {
         issues.push(format!(
             "High code repetition: {:.1}% (max {:.1}%)",
             rep_res.percentage, thresholds.max_repetition
