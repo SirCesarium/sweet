@@ -26,4 +26,8 @@ impl Language for Java {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["public ", "private ", "protected ", "static ", "void "]
+    }
 }

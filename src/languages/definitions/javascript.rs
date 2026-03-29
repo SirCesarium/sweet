@@ -26,4 +26,11 @@ impl Language for JavaScript {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["function ", "async function ", "const ", "let ", "var "]
+        // Note: const/let/var can be arrow functions. Simple starts_with might catch some variables too.
+        // For now, let's keep it simple or look for " => ".
+        // Given the current architecture, starts_with is the standard.
+    }
 }

@@ -26,4 +26,8 @@ impl Language for GDScript {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["func ", "static func "]
+    }
 }

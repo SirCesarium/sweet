@@ -26,4 +26,8 @@ impl Language for TypeScript {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["function ", "async function ", "const ", "let ", "var "]
+    }
 }

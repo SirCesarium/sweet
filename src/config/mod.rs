@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 use thresholds::{
     Thresholds, ThresholdsConfig, default_max_depth, default_max_imports, default_max_lines,
-    default_max_repetition, default_min_duplicate_lines,
+    default_max_lines_per_function, default_max_repetition, default_min_duplicate_lines,
 };
 
 /// Global analyzer configuration.
@@ -84,6 +84,9 @@ impl Config {
         if og.min_duplicate_lines != default_min_duplicate_lines() {
             self.thresholds.global.min_duplicate_lines = og.min_duplicate_lines;
         }
+        if og.max_lines_per_function != default_max_lines_per_function() {
+            self.thresholds.global.max_lines_per_function = og.max_lines_per_function;
+        }
 
         self.thresholds.overrides.extend(other.thresholds.overrides);
     }
@@ -114,6 +117,9 @@ impl Config {
         if og.min_duplicate_lines != default_min_duplicate_lines() {
             t.min_duplicate_lines = og.min_duplicate_lines;
         }
+        if og.max_lines_per_function != default_max_lines_per_function() {
+            t.max_lines_per_function = og.max_lines_per_function;
+        }
 
         // Language-specific overrides in .swtrc have highest priority
         if let Some(over) = self.thresholds.overrides.get(extension) {
@@ -131,6 +137,9 @@ impl Config {
             }
             if let Some(v) = over.min_duplicate_lines {
                 t.min_duplicate_lines = v;
+            }
+            if let Some(v) = over.max_lines_per_function {
+                t.max_lines_per_function = v;
             }
         }
         t

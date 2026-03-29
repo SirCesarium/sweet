@@ -33,6 +33,10 @@ pub struct FileReport {
     pub max_depth: usize,
     /// Measured repetition percentage.
     pub repetition: f64,
+    /// Measured function count.
+    pub functions: usize,
+    /// Calculated lines per function.
+    pub lines_per_function: usize,
     /// True if no thresholds were exceeded.
     pub is_sweet: bool,
     /// List of descriptive issue messages.

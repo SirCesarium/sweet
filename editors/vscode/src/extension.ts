@@ -100,6 +100,7 @@ export function activate(context: ExtensionContext) {
             'max-depth',
             'max-imports',
             'max-repetition',
+            'max-lines-per-function',
           ];
 
           // Find the start of the current word being typed

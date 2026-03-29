@@ -26,4 +26,17 @@ impl Language for CSharp {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &[
+            "public ",
+            "private ",
+            "protected ",
+            "static ",
+            "void ",
+            "internal ",
+            "async ",
+            "override ",
+        ]
+    }
 }

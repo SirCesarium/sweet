@@ -32,6 +32,9 @@ pub trait Language: Send + Sync {
     fn default_thresholds(&self) -> crate::Thresholds {
         crate::Thresholds::default()
     }
+
+    /// Keywords or patterns that identify a function/method declaration.
+    fn function_keywords(&self) -> &'static [&'static str];
 }
 
 /// Thread-safe registry for managing supported languages.

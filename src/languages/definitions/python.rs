@@ -26,4 +26,8 @@ impl Language for Python {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["def ", "async def "]
+    }
 }

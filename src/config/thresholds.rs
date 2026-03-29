@@ -22,6 +22,9 @@ pub struct Thresholds {
     /// Minimum identical lines to trigger repetition detection.
     #[serde(default = "default_min_duplicate_lines")]
     pub min_duplicate_lines: usize,
+    /// Maximum allowed average lines per function.
+    #[serde(default = "default_max_lines_per_function")]
+    pub max_lines_per_function: usize,
 }
 
 #[must_use]
@@ -44,6 +47,10 @@ pub const fn default_max_repetition() -> f64 {
 pub const fn default_min_duplicate_lines() -> usize {
     4
 }
+#[must_use]
+pub const fn default_max_lines_per_function() -> usize {
+    60
+}
 
 impl Default for Thresholds {
     fn default() -> Self {
@@ -53,6 +60,7 @@ impl Default for Thresholds {
             max_imports: 25,
             max_repetition: 15.0,
             min_duplicate_lines: 4,
+            max_lines_per_function: 60,
         }
     }
 }
@@ -146,4 +154,5 @@ pub struct PartialThresholds {
     pub max_imports: Option<usize>,
     pub max_repetition: Option<f64>,
     pub min_duplicate_lines: Option<usize>,
+    pub max_lines_per_function: Option<usize>,
 }

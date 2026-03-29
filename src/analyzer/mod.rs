@@ -2,6 +2,7 @@
 
 pub mod complexity;
 pub mod engine;
+pub mod functions;
 pub mod ignore;
 pub mod repetition;
 pub mod syntax;
@@ -89,6 +90,13 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
     let lines = volume::count_lines(content);
     let imports = syntax::count_imports(content, extension);
     let max_depth = complexity::analyze_depth(content, indent_size);
+    let functions = functions::count_functions(content, extension);
+    let lines_per_function = if functions > 0 {
+        lines / functions
+    } else {
+        lines
+    };
+
     let deep_lines = if disabled_rules.contains("max-depth") {
         Vec::new()
     } else {
@@ -125,8 +133,17 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
             rep_res.percentage, thresholds.max_repetition
         ));
     }
+    if !disabled_rules.contains("max-lines-per-function")
+        && lines_per_function > thresholds.max_lines_per_function
+    {
+        issues.push(format!(
+            "God functions detected: avg {} lines/function (max {})",
+            lines_per_function, thresholds.max_lines_per_function
+        ));
+    }
 
     let mut duplicates = Vec::new();
+
     let window_size = thresholds.min_duplicate_lines;
 
     if !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size {
@@ -166,6 +183,8 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
         imports,
         max_depth,
         repetition: rep_res.percentage,
+        functions,
+        lines_per_function,
         is_sweet: issues.is_empty(),
         issues,
         config: Some(config.clone()),

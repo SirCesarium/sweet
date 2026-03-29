@@ -26,4 +26,8 @@ impl Language for Rust {
             ..Default::default()
         }
     }
+
+    fn function_keywords(&self) -> &'static [&'static str] {
+        &["fn ", "async fn "]
+    }
 }
