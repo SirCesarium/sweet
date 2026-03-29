@@ -57,7 +57,8 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 | **C\#** | ✅ | `.cs` |
 | **GDScript** | ✅ | `.gd` |
 | **Lua** | ✅ | `.lua` |
-| **Go** | ⏳ *Planned* | `.go` |
+| **Go** | ✅ | `.go` |
+| **PHP** | ✅ | `.php` |
 
 Don't see your favorite language? `Sweet` is designed to be extensible. If you want to add support for a new language (like Go, C++, or Swift), we’d love your help\!
 

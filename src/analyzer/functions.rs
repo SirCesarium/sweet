@@ -22,4 +22,11 @@ mod tests {
         let code = "fn main() {}\nasync fn test() {}";
         assert_eq!(count_functions(code, "rs"), 2);
     }
+
+    #[test]
+    fn test_php_functions() {
+        let code =
+            "function test() {}\npublic function move() {}\nfinal protected function stop() {}";
+        assert_eq!(count_functions(code, "php"), 3);
+    }
 }

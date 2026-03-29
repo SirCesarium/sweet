@@ -97,6 +97,10 @@ pub struct ThresholdsOverrides {
     pub gd: Option<PartialThresholds>,
     /// `Lua` overrides (.lua)
     pub lua: Option<PartialThresholds>,
+    /// `Go` overrides (.go)
+    pub go: Option<PartialThresholds>,
+    /// `PHP` overrides (.php)
+    pub php: Option<PartialThresholds>,
     /// Custom overrides for any other extension.
     #[serde(flatten)]
     pub custom: HashMap<String, PartialThresholds>,
@@ -115,6 +119,8 @@ impl ThresholdsOverrides {
             "cs" => self.cs.as_ref(),
             "gd" => self.gd.as_ref(),
             "lua" => self.lua.as_ref(),
+            "go" => self.go.as_ref(),
+            "php" => self.php.as_ref(),
             _ => self.custom.get(ext),
         }
     }
@@ -144,6 +150,12 @@ impl ThresholdsOverrides {
         }
         if other.lua.is_some() {
             self.lua = other.lua;
+        }
+        if other.go.is_some() {
+            self.go = other.go;
+        }
+        if other.php.is_some() {
+            self.php = other.php;
         }
         for (ext, partial) in other.custom {
             self.custom.insert(ext, partial);

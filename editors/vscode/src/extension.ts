@@ -49,6 +49,8 @@ export function activate(context: ExtensionContext) {
     'csharp',
     'gdscript',
     'lua',
+    'go',
+    'php',
   ];
 
   const clientOptions: LanguageClientOptions = {
@@ -56,6 +58,8 @@ export function activate(context: ExtensionContext) {
       ...supportedLanguages.map((lang) => ({ scheme: 'file', language: lang })),
       { scheme: 'file', pattern: '**/*.gd' },
       { scheme: 'file', pattern: '**/*.lua' },
+      { scheme: 'file', pattern: '**/*.go' },
+      { scheme: 'file', pattern: '**/*.php' },
       { scheme: 'file', pattern: '**/*.rs' },
       { scheme: 'file', pattern: '**/*.py' },
       { scheme: 'file', pattern: '**/*.js' },

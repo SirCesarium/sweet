@@ -35,9 +35,11 @@
         "overrides": {
           "cs": null,
           "gd": null,
+          "go": null,
           "java": null,
           "js": null,
           "lua": null,
+          "php": null,
           "py": null,
           "rs": null,
           "ts": null
@@ -168,9 +170,11 @@
           "default": {
             "cs": null,
             "gd": null,
+            "go": null,
             "java": null,
             "js": null,
             "lua": null,
+            "php": null,
             "py": null,
             "rs": null,
             "ts": null
@@ -204,6 +208,17 @@
             }
           ]
         },
+        "go": {
+          "description": "`Go` overrides (.go)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "java": {
           "description": "Java overrides (.java)",
           "anyOf": [
@@ -228,6 +243,17 @@
         },
         "lua": {
           "description": "`Lua` overrides (.lua)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "php": {
+          "description": "`PHP` overrides (.php)",
           "anyOf": [
             {
               "$ref": "#/$defs/PartialThresholds"

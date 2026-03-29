@@ -30,6 +30,16 @@
         "aliases": ["Lua"]
       },
       {
+        "id": "go",
+        "extensions": [".go"],
+        "aliases": ["Go"]
+      },
+      {
+        "id": "php",
+        "extensions": [".php"],
+        "aliases": ["PHP"]
+      },
+      {
         "id": "json",
         "extensions": [
           ".swtrc"
@@ -67,7 +77,9 @@
     "onLanguage:java",
     "onLanguage:csharp",
     "onLanguage:gdscript",
-    "onLanguage:lua"
+    "onLanguage:lua",
+    "onLanguage:go",
+    "onLanguage:php"
   ],
   "scripts": {
     "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",

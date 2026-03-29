@@ -34,4 +34,10 @@ mod tests {
         let code = "import React from 'react';\nimport { useState } from 'react';";
         assert_eq!(count_imports(code, "ts"), 2);
     }
+
+    #[test]
+    fn test_go_imports() {
+        let code = "import (\n\t\"fmt\"\n\t\"os\"\n)\nimport \"math\"";
+        assert_eq!(count_imports(code, "go"), 3);
+    }
 }
