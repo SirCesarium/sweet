@@ -16,7 +16,18 @@ pub fn count_imports(content: &str, extension: &str) -> usize {
         .lines()
         .filter(|line| {
             let trimmed = line.trim_start();
-            keywords.iter().any(|&kw| trimmed.starts_with(kw))
+            if trimmed.is_empty() {
+                return false;
+            }
+            keywords.iter().any(|&kw| {
+                if kw.ends_with('(') || kw.ends_with('"') {
+                    // Function-like or quote-starting keywords can be anywhere (e.g., preload in GDScript)
+                    trimmed.contains(kw)
+                } else {
+                    // Statement-like keywords must be at the start
+                    trimmed.starts_with(kw)
+                }
+            })
         })
         .count()
 }

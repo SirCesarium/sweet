@@ -1,6 +1,12 @@
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { workspace, type ExtensionContext } from 'vscode';
+import {
+  workspace,
+  languages,
+  CompletionItem,
+  CompletionItemKind,
+  type ExtensionContext,
+} from 'vscode';
 import {
   LanguageClient,
   type LanguageClientOptions,
@@ -33,20 +39,69 @@ export function activate(context: ExtensionContext) {
     },
   };
 
+  const supportedLanguages = [
+    'rust',
+    'python',
+    'javascript',
+    'typescript',
+    'java',
+    'csharp',
+    'gdscript',
+  ];
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
-      { scheme: 'file', language: 'rust' },
-      { scheme: 'file', language: 'python' },
-      { scheme: 'file', language: 'javascript' },
-      { scheme: 'file', language: 'typescript' },
-      { scheme: 'file', language: 'java' },
-      { scheme: 'file', language: 'csharp' },
-      { scheme: 'file', language: 'gdscript' },
+      ...supportedLanguages.map((lang) => ({ scheme: 'file', language: lang })),
+      { scheme: 'file', pattern: '**/*.gd' },
+      { scheme: 'file', pattern: '**/*.rs' },
+      { scheme: 'file', pattern: '**/*.py' },
+      { scheme: 'file', pattern: '**/*.js' },
+      { scheme: 'file', pattern: '**/*.ts' },
+      { scheme: 'file', pattern: '**/*.java' },
+      { scheme: 'file', pattern: '**/*.cs' },
     ],
     synchronize: {
       fileEvents: workspace.createFileSystemWatcher('**/.swtrc'),
     },
   };
+
+  // Autocomplete for @swt-disable
+  const provider = languages.registerCompletionItemProvider(
+    supportedLanguages.map((lang) => ({ scheme: 'file', language: lang })),
+    {
+      provideCompletionItems(document, position) {
+        const line = document.lineAt(position).text;
+        const linePrefix = line.substring(0, position.character);
+
+        // If typing the directive itself
+        if (linePrefix.endsWith('@swt-')) {
+          const item = new CompletionItem(
+            'swt-disable',
+            CompletionItemKind.Keyword
+          );
+          item.documentation = 'Disable specific health checks for this file';
+          item.insertText = 'swt-disable ';
+          return [item];
+        }
+
+        // If typing rules after @swt-disable
+        if (linePrefix.includes('@swt-disable')) {
+          return [
+            new CompletionItem('max-lines', CompletionItemKind.Enum),
+            new CompletionItem('max-depth', CompletionItemKind.Enum),
+            new CompletionItem('max-imports', CompletionItemKind.Enum),
+            new CompletionItem('max-repetition', CompletionItemKind.Enum),
+          ];
+        }
+
+        return undefined;
+      },
+    },
+    '-',
+    ' ' // trigger characters
+  );
+
+  context.subscriptions.push(provider);
 
   client = new LanguageClient(
     'sweet',
