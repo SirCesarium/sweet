@@ -18,4 +18,12 @@ impl Language for JavaScript {
     fn import_keywords(&self) -> &'static [&'static str] {
         &["import ", "require("]
     }
+
+    fn default_thresholds(&self) -> crate::Thresholds {
+        crate::Thresholds {
+            max_lines: 400,
+            max_imports: 30,
+            ..Default::default()
+        }
+    }
 }

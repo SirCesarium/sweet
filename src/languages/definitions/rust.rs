@@ -18,4 +18,12 @@ impl Language for Rust {
     fn import_keywords(&self) -> &'static [&'static str] {
         &["use "]
     }
+
+    fn default_thresholds(&self) -> crate::Thresholds {
+        crate::Thresholds {
+            max_lines: 300,
+            max_imports: 30,
+            ..Default::default()
+        }
+    }
 }

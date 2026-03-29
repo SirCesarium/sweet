@@ -25,10 +25,10 @@
       "$ref": "#/$defs/ThresholdsConfig",
       "default": {
         "global": {
-          "max_depth": 5,
-          "max_imports": 20,
-          "max_lines": 250,
-          "max_repetition": 10.0,
+          "max_depth": 6,
+          "max_imports": 25,
+          "max_lines": 400,
+          "max_repetition": 15.0,
           "min_duplicate_lines": 4
         },
         "overrides": {
@@ -97,28 +97,28 @@
           "description": "Maximum allowed control flow nesting depth.",
           "type": "integer",
           "format": "uint",
-          "default": 5,
+          "default": 6,
           "minimum": 0
         },
         "max_imports": {
           "description": "Maximum allowed import/dependency statements.",
           "type": "integer",
           "format": "uint",
-          "default": 20,
+          "default": 25,
           "minimum": 0
         },
         "max_lines": {
           "description": "Maximum allowed source lines of code.",
           "type": "integer",
           "format": "uint",
-          "default": 250,
+          "default": 400,
           "minimum": 0
         },
         "max_repetition": {
           "description": "Maximum allowed repetition percentage (0-100).",
           "type": "number",
           "format": "double",
-          "default": 10.0
+          "default": 15.0
         },
         "min_duplicate_lines": {
           "description": "Minimum identical lines to trigger repetition detection.",
@@ -137,10 +137,10 @@
           "description": "Default thresholds for all files.",
           "$ref": "#/$defs/Thresholds",
           "default": {
-            "max_depth": 5,
-            "max_imports": 20,
-            "max_lines": 250,
-            "max_repetition": 10.0,
+            "max_depth": 6,
+            "max_imports": 25,
+            "max_lines": 400,
+            "max_repetition": 15.0,
             "min_duplicate_lines": 4
           }
         },

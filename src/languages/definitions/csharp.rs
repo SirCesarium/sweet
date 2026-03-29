@@ -18,4 +18,12 @@ impl Language for CSharp {
     fn import_keywords(&self) -> &'static [&'static str] {
         &["using "]
     }
+
+    fn default_thresholds(&self) -> crate::Thresholds {
+        crate::Thresholds {
+            max_lines: 500,
+            max_imports: 30,
+            ..Default::default()
+        }
+    }
 }

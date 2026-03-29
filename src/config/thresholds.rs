@@ -26,19 +26,19 @@ pub struct Thresholds {
 
 #[must_use]
 pub const fn default_max_lines() -> usize {
-    250
+    400
 }
 #[must_use]
 pub const fn default_max_depth() -> usize {
-    5
+    6
 }
 #[must_use]
 pub const fn default_max_imports() -> usize {
-    20
+    25
 }
 #[must_use]
 pub const fn default_max_repetition() -> f64 {
-    10.0
+    15.0
 }
 #[must_use]
 pub const fn default_min_duplicate_lines() -> usize {
@@ -48,10 +48,10 @@ pub const fn default_min_duplicate_lines() -> usize {
 impl Default for Thresholds {
     fn default() -> Self {
         Self {
-            max_lines: 250,
-            max_depth: 5,
-            max_imports: 20,
-            max_repetition: 10.0,
+            max_lines: 400,
+            max_depth: 6,
+            max_imports: 25,
+            max_repetition: 15.0,
             min_duplicate_lines: 4,
         }
     }

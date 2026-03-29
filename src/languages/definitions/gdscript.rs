@@ -18,4 +18,12 @@ impl Language for GDScript {
     fn import_keywords(&self) -> &'static [&'static str] {
         &["extends", "preload(", "load(", "class_name"]
     }
+
+    fn default_thresholds(&self) -> crate::Thresholds {
+        crate::Thresholds {
+            max_lines: 400,
+            max_depth: 7,
+            ..Default::default()
+        }
+    }
 }

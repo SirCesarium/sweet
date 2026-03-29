@@ -68,7 +68,7 @@ impl Config {
             self.exclude.extend(other.exclude);
         }
 
-        let og = other.thresholds.global;
+        let og = &other.thresholds.global;
         if og.max_lines != default_max_lines() {
             self.thresholds.global.max_lines = og.max_lines;
         }
@@ -91,7 +91,31 @@ impl Config {
     /// Resolves effective thresholds for a specific file extension.
     #[must_use]
     pub fn get_thresholds(&self, extension: &str) -> Thresholds {
-        let mut t = self.thresholds.global.clone();
+        let registry = crate::languages::LanguageRegistry::get();
+        let mut t = registry.get_by_extension(extension).map_or_else(
+            Thresholds::default,
+            crate::languages::Language::default_thresholds,
+        );
+
+        // Global config overrides language defaults
+        let og = &self.thresholds.global;
+        if og.max_lines != default_max_lines() {
+            t.max_lines = og.max_lines;
+        }
+        if og.max_depth != default_max_depth() {
+            t.max_depth = og.max_depth;
+        }
+        if og.max_imports != default_max_imports() {
+            t.max_imports = og.max_imports;
+        }
+        if (og.max_repetition - default_max_repetition()).abs() > f64::EPSILON {
+            t.max_repetition = og.max_repetition;
+        }
+        if og.min_duplicate_lines != default_min_duplicate_lines() {
+            t.min_duplicate_lines = og.min_duplicate_lines;
+        }
+
+        // Language-specific overrides in .swtrc have highest priority
         if let Some(over) = self.thresholds.overrides.get(extension) {
             if let Some(v) = over.max_lines {
                 t.max_lines = v;

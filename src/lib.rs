@@ -61,6 +61,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_language_specific_defaults() {
+        let config = Config::default();
+        let t_rs = config.get_thresholds("rs");
+        assert_eq!(t_rs.max_lines, 300);
+        assert_eq!(t_rs.max_imports, 30);
+
+        let t_java = config.get_thresholds("java");
+        assert_eq!(t_java.max_lines, 500);
+    }
+
+    #[test]
     fn test_config_overrides() {
         let mut config = Config::default();
         config.thresholds.overrides.java = Some(PartialThresholds {
@@ -70,7 +81,7 @@ mod tests {
 
         let t = config.get_thresholds("java");
         assert_eq!(t.max_imports, 100);
-        assert_eq!(t.max_lines, 250);
+        assert_eq!(t.max_lines, 500);
     }
 
     #[test]

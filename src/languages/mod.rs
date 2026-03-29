@@ -27,6 +27,11 @@ pub trait Language: Send + Sync {
     fn indent_size(&self) -> usize {
         4
     }
+
+    /// Default health thresholds specifically tuned for this language.
+    fn default_thresholds(&self) -> crate::Thresholds {
+        crate::Thresholds::default()
+    }
 }
 
 /// Thread-safe registry for managing supported languages.
