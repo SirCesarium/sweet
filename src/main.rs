@@ -16,10 +16,11 @@ const ASCII: &str = r"
  /__  /| |/ |/ /  __/  __/ /_  
 /____/ |__/|__/\___/\___/\__/  ";
 
+/// Sweet CLI: High-performance code health and architectural integrity analyzer.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Subcommand to execute.
+    /// Subcommand to execute. If omitted, performs a standard health check on the path.
     #[command(subcommand)]
     command: Option<Commands>,
 
@@ -35,59 +36,78 @@ struct Args {
     /// Minimal output for CI environments.
     #[arg(short, long)]
     quiet: bool,
-
-    /// Remove comments from a specific file.
-    #[arg(long, value_name = "FILE")]
-    uncomment: Option<PathBuf>,
-
-    /// remove even doc comments (///, /**) when using --uncomment.
-    #[arg(long)]
-    aggressive: bool,
-
-    /// inspect and show detailed code duplication/repetition.
-    #[arg(long)]
-    inspect: bool,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Check for updates and install if available.
     Update,
+    /// Check for updates without installing.
+    CheckUpdates,
+    /// Detailed inspection of code duplication and repetition.
+    Inspect {
+        /// Path to inspect (default: current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+    },
+    /// Strip comments from a specific file.
+    Uncomment {
+        /// File to strip comments from.
+        #[arg(value_name = "FILE")]
+        path: PathBuf,
+
+        /// Remove even doc comments (///, /**).
+        #[arg(long, short)]
+        aggressive: bool,
+    },
 }
 
 fn main() -> std::process::ExitCode {
     let args = Args::parse();
 
-    if matches!(args.command, Some(Commands::Update)) {
-        return match swt::update::handle_update() {
-            Ok(()) => std::process::ExitCode::SUCCESS,
-            Err(_) => std::process::ExitCode::FAILURE,
-        };
-    }
-
-    // Fast update check (silent)
-    if !args.quiet && args.json.is_none() {
-        swt::update::check_for_updates();
-    }
-
-    if let Some(file_path) = args.uncomment {
-        if handle_uncomment(&file_path, args.aggressive) {
+    match args.command {
+        Some(Commands::Update) => {
+            return match swt::update::handle_update() {
+                Ok(()) => std::process::ExitCode::SUCCESS,
+                Err(_) => std::process::ExitCode::FAILURE,
+            };
+        }
+        Some(Commands::CheckUpdates) => {
+            swt::update::check_for_updates();
             return std::process::ExitCode::SUCCESS;
         }
-        return std::process::ExitCode::FAILURE;
+        Some(Commands::Inspect { path }) => {
+            return run_analysis(&path, args.json.as_ref(), args.quiet, true);
+        }
+        Some(Commands::Uncomment { path, aggressive }) => {
+            if handle_uncomment(&path, aggressive) {
+                return std::process::ExitCode::SUCCESS;
+            }
+            return std::process::ExitCode::FAILURE;
+        }
+        None => {}
     }
 
-    let config = Config::load(&args.path);
-    let engine = AnalysisEngine::new(args.path.clone(), config);
+    run_analysis(&args.path, args.json.as_ref(), args.quiet, false)
+}
 
-    if !args.quiet && args.json.is_none() {
+fn run_analysis(
+    path: &Path,
+    #[allow(clippy::option_option)] json: Option<&Option<PathBuf>>,
+    quiet: bool,
+    inspect: bool,
+) -> std::process::ExitCode {
+    let config = Config::load(path);
+    let engine = AnalysisEngine::new(path.to_path_buf(), config);
+
+    if !quiet && json.is_none() {
         show_branding();
     }
 
-    let reports = engine.run(args.quiet, args.json.is_none(), args.inspect);
+    let reports = engine.run(quiet, json.is_none(), inspect);
 
     if reports.is_empty() {
-        if !args.quiet {
+        if !quiet {
             println!(
                 "\n{}",
                 style(" 📭 No supported files found.").yellow().bold()
@@ -98,10 +118,10 @@ fn main() -> std::process::ExitCode {
 
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
 
-    if let Some(json_opt) = &args.json {
+    if let Some(json_opt) = json {
         handle_json_reporting(&reports, json_opt.as_ref());
     } else {
-        swt::report::print_reports(&reports, args.quiet, None);
+        swt::report::print_reports(&reports, quiet, None);
     }
 
     if bitter_count > 0 {

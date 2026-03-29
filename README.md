@@ -11,10 +11,13 @@
 <h1 align="center">🍬 Sweet (swt)</h1>
 
 <p align="center">
-  <strong>The quality gate for sustainable software architecture.</strong>
+  <strong>The first stable release: v4.0.0</strong><br>
+  The quality gate for sustainable software architecture.
 </p>
 
-`Sweet` is a high-performance code health analyzer designed to enforce architectural integrity. It is **plug-and-play**: it works immediately with zero configuration using intelligent defaults, while offering the flexibility to enforce stricter standards via `.swtrc` files. By quantifying technical debt and identifying complex logic patterns, it helps teams adhere to core engineering principles like **SRP** (Single Responsibility Principle) and **DRY** (Don't Repeat Yourself).
+`Sweet` is a high-performance code health and architectural integrity analyzer. It is **plug-and-play**: it works immediately with zero configuration using intelligent defaults, while offering the flexibility to enforce stricter standards via `.swtrc` files.
+
+By quantifying technical debt and identifying complex logic patterns, `Sweet` helps teams adhere to core engineering principles like **SRP** (Single Responsibility Principle) and **DRY** (Don't Repeat Yourself).
 
 ## 🍬 Why Sweet?
 
@@ -32,8 +35,8 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 | Metric | Goal | Engineering Impact |
 | :--- | :--- | :--- |
 | **Physical Weight** | `max_lines` | Prevents bloated files and encourages decomposition. |
-| **Logic Density** | `max_lines_per_function` | Enforces **SRP** by identifying "God Functions" that do too much. |
-| **Control Flow** | `max_depth` | Flags excessive nesting to keep logic readable and testable. |
+| **Logic Density** | `max_lines_per_function` | Enforces **SRP** by identifying "God Functions". |
+| **Control Flow** | `max_depth` | Flags excessive nesting to keep logic readable. |
 | **Coupling** | `max_imports` | Monitors dependency growth to prevent tangled architectures. |
 | **Repetition** | `max_repetition` | Identifies violations of the **DRY** principle. |
 
@@ -42,8 +45,9 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 - **Blazing Fast:** Process thousands of files in milliseconds (self-analysis in <10ms).
 - **Hierarchical Config:** Cascading `.swtrc` files for directory-specific rule sets.
 - **Global Inspection:** Project-wide duplicate detection with detailed occurrence mapping.
-- **Intelligent Defaults:** Language-specific thresholds tuned for different ecosystems (e.g., higher line limits for Java/C# vs. Rust).
-- **Quality Guard:** Native support for pre-push hooks to block "Bitter" code from reaching production.
+- **Intelligent Defaults:** Language-specific thresholds tuned for different ecosystems.
+- **Quality Guard:** Native support for pre-push hooks to block "Bitter" code.
+- **Auto-Update:** Built-in update system to keep your tool always sharp.
 
 ### 🍭 Supported Languages
 
@@ -61,52 +65,41 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 | **PHP** | ✅ | `.php` |
 | **C/C++** | ✅ | `.c`, `.cpp`, `.h`, `.hpp`, `.cc`, `.cxx` |
 
-Don't see your favorite language? `Sweet` is designed to be extensible. If you want to add support for a new language (like Go, C++, or Swift), we’d love your help\!
-
-Check out our [Contributing Guide](./CONTRIBUTING.md) to see how easy it is to implement a new language provider.
-
 ## 🍬 Installation
 
-[Click here](https://github.com/SirCesarium/sweet/releases) to get into the releases page!
+Visit the [Releases Page](https://github.com/SirCesarium/sweet/releases) for native installers:
+- **Windows**: `.msi`
+- **Linux**: `.deb`, `.rpm`
 
-### You can also install `sweet` from [crates.io](https://crates.io)
-
+### Crates.io
 ```bash
 cargo install swt
 ```
 
-### Compiling by yourself
-
-- Clone the project `git clone https://github.com/SirCesarium/sweet.git`.
-- Build using `cargo`: `cargo build --release`.
-- Check the `target/release/` folder.
-
 ## 📖 Usage
 
+Run a standard health check:
 ```bash
-swt # or specify the project path using `swt path/to/project`
+swt [path]
 ```
 
-### Copy-Paste Inspector
-
-Show exact code fragments repeated across different files:
-
+### Deep Inspection
+Find exact code fragments repeated across different files:
 ```bash
-swt . --inspect
+swt inspect [path]
 ```
+
 ### Strip Comments
-
-AI Agents and LLMs often generate verbose, redundant comments that clutter your codebase. Use the `--uncomment` flag to strip the noise and reclaim your screen real estate for what matters: **the logic.**
-
-> [!TIP]
-> By default, `Sweet` preserves your **documentation comments** (e.g., `//!`, `///`, or `/** */`). Use the `--aggressive` flag if you want a truly blank slate.
-
+AI Agents often generate verbose comments. Reclaim your logic:
 ```bash
-# Clean a single file while keeping documentation
-swt --uncomment src/lib.rs
+swt uncomment <file> [--aggressive]
+```
 
-# Full cleanup (removes everything including docs)
-swt --uncomment --aggressive src/lib.rs
+### Update
+Check or install new versions:
+```bash
+swt check-updates
+swt update
 ```
 
 ### 🔌 Power User Integration
@@ -117,14 +110,14 @@ swt --uncomment --aggressive src/lib.rs
 Strip comments from every Rust file in your project at once.
 
 ```bash
-fd -e rs -x swt --uncomment
+fd -e rs -x swt uncomment
 ```
 
 **With [`ripgrep` (rg)](https://github.com/burntsushi/ripgrep):**
 Target only the files that contain a specific "Bitter" pattern or AI-generated signature.
 
 ```bash
-rg "TODO:" -l | xargs swt --uncomment
+rg "TODO:" -l | xargs swt uncomment
 ```
 
 ## 🏗️ CI/CD Integration
@@ -148,15 +141,9 @@ jobs:
           enable-fmt: true     # Ensures consistent formatting
 ```
 
-### Why use Refinery?
-
-  * **Zero Setup:** No need to `cargo install swt` in every CI run; Refinery handles the caching and environment for you.
-  * **Fail-Fast:** Automatically blocks "Bitter" code from being merged.
-  * **One-Stop Shop:** If you need to ship, use the same suite to build multi-target binaries and push Docker images to GHCR.
-
 ## ⚙️ Configuration
 
-`Sweet` resolves `.swtrc` files hierarchically, merging configurations from the file's directory up to the root.
+`Sweet` resolves `.swtrc` files hierarchically.
 
 ```json
 {
@@ -164,17 +151,10 @@ jobs:
   "thresholds": {
     "global": { 
       "max_lines": 400, 
-      "max_depth": 6, 
-      "max_repetition": 15.0,
       "max_lines_per_function": 200
     },
-    "overrides": {
-      "rust": { "max_imports": 30 },
-      "gdscript": { "max_depth": 7 }
-    },
     "severities": {
-      "max-repetition": "warning",
-      "max-lines": "error"
+      "max-repetition": "warning"
     }
   }
 }
@@ -182,38 +162,20 @@ jobs:
 
 ### 🍭 Severity Levels
 
-By default, all rule violations are treated as **errors** (causing a non-zero exit code). You can downgrade specific rules to **warnings** (informational only, exit code 0) in your `.swtrc`:
-
-- `error`: Blocks the build/CI (default).
-- `warning`: Emits a yellow alert but allows the build to pass.
-
-Supported rule keys: `max-lines`, `max-depth`, `max-imports`, `max-repetition`, `max-lines-per-function`.
+By default, all rule violations are treated as **errors** (causing a non-zero exit code). You can downgrade specific rules to **warnings** (informational only, exit code 0) in your `.swtrc`.
 
 ### 🍭 In-file Control
 
-You can granularly disable specific checks for a single file using comments in the first 20 lines. This is ideal for legacy codebases or generated assets.
+Disable specific checks via comments in the first 20 lines:
+`// @swt-disable max-lines max-repetition`
 
-Add `@swt-disable <rule1> <rule2>`:
+**Rules:** `max-lines`, `max-depth`, `max-imports`, `max-repetition`, `max-lines-per-function`.
 
-```rust
-// @swt-disable max-lines max-repetition
-```
-
-**Supported rules:**
-- `max-lines`: Total source lines.
-- `max-depth`: Control flow nesting depth.
-- `max-imports`: Dependency/Import statement count.
-- `max-repetition`: Project-wide or local code duplication percentage.
-- `max-lines-per-function`: Average lines per function (SRP).
-
-> [!TIP]
-> You can also change the importance of these rules globally or per-language in your `.swtrc` using the `severities` map (e.g., changing an `error` to a `warning`).
-
-To ignore a file entirely, use the `@sweetignore` directive.
+To ignore a file entirely, use `@sweetignore`.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Whether it's adding support for a new language, fixing a bug, or improving the documentation, please check our [Contributing Guide](./CONTRIBUTING.md) to get started.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for technical specifications and how to add new languages.
 
 ## 📜 License
 

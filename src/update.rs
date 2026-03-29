@@ -4,30 +4,12 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 
-/// Checks for updates and caches the result.
-/// Performs a synchronous network check only if the cache is missing or expired (24h).
+/// Checks for updates and prints a message if a new version is available.
 pub fn check_for_updates() {
-    let cache_dir = std::env::temp_dir().join("sweet_update_cache");
     let current_version = env!("CARGO_PKG_VERSION");
 
-    // 1. Try to use existing cache
-    if let Ok(cached_version) = fs::read_to_string(&cache_dir) {
-        let is_fresh = fs::metadata(&cache_dir)
-            .and_then(|m| m.modified())
-            .map(|m| m.elapsed().map(|e| e.as_secs() < 86400).unwrap_or(false))
-            .unwrap_or(false);
+    println!("{}", style("🔍 Checking for updates...").cyan());
 
-        if is_fresh {
-            if self_update::version::bump_is_greater(current_version, &cached_version)
-                .unwrap_or(false)
-            {
-                print_update_msg(&cached_version, current_version);
-            }
-            return;
-        }
-    }
-
-    // 2. Cache missing or expired: Perform synchronous check
     let releases = self_update::backends::github::ReleaseList::configure()
         .repo_owner("SirCesarium")
         .repo_name("sweet")
@@ -36,18 +18,17 @@ pub fn check_for_updates() {
     if let Some(latest_release) = releases
         .and_then(self_update::backends::github::ReleaseList::fetch)
         .ok()
-        .and_then(|latest| latest.into_iter().next())
+        .and_then(|latest| {
+            latest.into_iter().find(|r| {
+                self_update::version::bump_is_greater(current_version, &r.version).unwrap_or(false)
+            })
+        })
     {
-        let _ = fs::write(&cache_dir, &latest_release.version);
-
-        if self_update::version::bump_is_greater(current_version, &latest_release.version)
-            .unwrap_or(false)
-        {
-            print_update_msg(&latest_release.version, current_version);
-        }
+        print_update_msg(&latest_release.version, current_version);
+    } else {
+        println!("{}", style("Sweet is already up to date.").green());
     }
 }
-
 /// Performs the update process with a beautiful progress bar.
 ///
 /// # Errors
