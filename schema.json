@@ -28,7 +28,7 @@
           "max_depth": 6,
           "max_imports": 25,
           "max_lines": 400,
-          "max_lines_per_function": 60,
+          "max_lines_per_function": 200,
           "max_repetition": 15.0,
           "min_duplicate_lines": 4
         },
@@ -127,7 +127,7 @@
           "description": "Maximum allowed average lines per function.",
           "type": "integer",
           "format": "uint",
-          "default": 60,
+          "default": 200,
           "minimum": 0
         },
         "max_repetition": {
@@ -156,7 +156,7 @@
             "max_depth": 6,
             "max_imports": 25,
             "max_lines": 400,
-            "max_lines_per_function": 60,
+            "max_lines_per_function": 200,
             "max_repetition": 15.0,
             "min_duplicate_lines": 4
           }
