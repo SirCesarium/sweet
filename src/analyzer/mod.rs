@@ -26,7 +26,11 @@ static CONFIG_CACHE: LazyLock<DashMap<PathBuf, Config>> = LazyLock::new(DashMap:
 ///
 /// Employs hierarchical configuration resolution and memory-mapped I/O for large files.
 #[must_use]
-pub fn analyze_file(path: &Path, _base_config: &Config) -> Option<(FileReport, String)> {
+pub fn analyze_file(
+    path: &Path,
+    _base_config: &Config,
+    inspect: bool,
+) -> Option<(FileReport, String)> {
     let parent = path
         .parent()
         .unwrap_or_else(|| Path::new("."))
@@ -68,6 +72,7 @@ pub fn analyze_file(path: &Path, _base_config: &Config) -> Option<(FileReport, S
         path,
         &config,
         &disabled_rules,
+        inspect,
     );
     Some((report, content))
 }
@@ -81,6 +86,7 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
     path: &std::path::Path,
     config: &crate::Config,
     disabled_rules: &std::collections::HashSet<String, S>,
+    inspect: bool,
 ) -> crate::FileReport {
     let registry = LanguageRegistry::get();
     let indent_size = registry
@@ -106,67 +112,40 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
     let clean_content = uncomment::remove_comments(content, extension, true);
     let rep_res = repetition::analyze_repetition(&clean_content, thresholds.min_duplicate_lines);
 
-    let mut issues = Vec::new();
+    let metrics = RawMetrics {
+        lines,
+        imports,
+        max_depth,
+        repetition: rep_res.percentage,
+        lines_per_function,
+    };
 
-    if !disabled_rules.contains("max-lines") && lines > thresholds.max_lines {
-        issues.push(format!(
-            "File too long: {} lines (max {})",
-            lines, thresholds.max_lines
-        ));
-    }
-    if !disabled_rules.contains("max-imports") && imports > thresholds.max_imports {
-        issues.push(format!(
-            "Too many imports: {} (max {})",
-            imports, thresholds.max_imports
-        ));
-    }
-    if !disabled_rules.contains("max-depth") && max_depth > thresholds.max_depth {
-        issues.push(format!(
-            "Excessive nesting: {} levels (max {})",
-            max_depth, thresholds.max_depth
-        ));
-    }
-    if !disabled_rules.contains("max-repetition") && rep_res.percentage > thresholds.max_repetition
-    {
-        issues.push(format!(
-            "High code repetition: {:.1}% (max {:.1}%)",
-            rep_res.percentage, thresholds.max_repetition
-        ));
-    }
-    if !disabled_rules.contains("max-lines-per-function")
-        && lines_per_function > thresholds.max_lines_per_function
-    {
-        issues.push(format!(
-            "God functions detected: avg {} lines/function (max {})",
-            lines_per_function, thresholds.max_lines_per_function
-        ));
-    }
+    let issues = collect_issues(&metrics, thresholds, config, disabled_rules);
+    let is_sweet = issues.iter().all(|i| i.severity != crate::Severity::Error);
 
     let mut duplicates = Vec::new();
-
     let window_size = thresholds.min_duplicate_lines;
 
-    if !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size {
+    if inspect && !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size
+    {
         let chunks = repetition::get_chunks(&rep_res.hashes, window_size);
-
         let content_lines: Vec<&str> = content.lines().collect();
-        for positions in chunks.values() {
-            if positions.len() > 1 {
-                for &pos in positions {
-                    let others: Vec<(std::path::PathBuf, usize)> = positions
-                        .iter()
-                        .filter(|&&p| p != pos)
-                        .map(|&p| (path.to_path_buf(), p))
-                        .collect();
 
-                    if pos > 0 && pos + window_size <= content_lines.len() {
-                        let snippet = content_lines[pos - 1..pos - 1 + window_size].join("\n");
-                        duplicates.push(crate::RepetitionDetail {
-                            content: snippet,
-                            line: pos,
-                            occurrences: others,
-                        });
-                    }
+        for positions in chunks.values().filter(|v| v.len() > 1) {
+            for &pos in positions {
+                let others: Vec<(std::path::PathBuf, usize)> = positions
+                    .iter()
+                    .filter(|&&p| p != pos)
+                    .map(|&p| (path.to_path_buf(), p))
+                    .collect();
+
+                if pos > 0 && pos + window_size <= content_lines.len() {
+                    let snippet = content_lines[pos - 1..pos - 1 + window_size].join("\n");
+                    duplicates.push(crate::RepetitionDetail {
+                        content: snippet,
+                        line: pos,
+                        occurrences: others,
+                    });
                 }
             }
         }
@@ -180,10 +159,80 @@ pub fn analyze_content<S: std::hash::BuildHasher>(
         repetition: rep_res.percentage,
         functions,
         lines_per_function,
-        is_sweet: issues.is_empty(),
+        is_sweet,
         issues,
         config: Some(config.clone()),
         duplicates,
         deep_lines,
     }
+}
+
+/// Raw analysis results before threshold evaluation.
+struct RawMetrics {
+    lines: usize,
+    imports: usize,
+    max_depth: usize,
+    repetition: f64,
+    lines_per_function: usize,
+}
+
+/// Aggregates all rule violations into a list of Issues.
+fn collect_issues<S: std::hash::BuildHasher>(
+    metrics: &RawMetrics,
+    thresholds: &crate::Thresholds,
+    config: &crate::Config,
+    disabled_rules: &std::collections::HashSet<String, S>,
+) -> Vec<crate::Issue> {
+    let mut issues = Vec::new();
+
+    if !disabled_rules.contains("max-lines") && metrics.lines > thresholds.max_lines {
+        issues.push(crate::Issue {
+            message: format!(
+                "File too long: {} lines (max {})",
+                metrics.lines, thresholds.max_lines
+            ),
+            severity: config.thresholds.severities.get("max-lines"),
+        });
+    }
+    if !disabled_rules.contains("max-imports") && metrics.imports > thresholds.max_imports {
+        issues.push(crate::Issue {
+            message: format!(
+                "Too many imports: {} (max {})",
+                metrics.imports, thresholds.max_imports
+            ),
+            severity: config.thresholds.severities.get("max-imports"),
+        });
+    }
+    if !disabled_rules.contains("max-depth") && metrics.max_depth > thresholds.max_depth {
+        issues.push(crate::Issue {
+            message: format!(
+                "Excessive nesting: {} levels (max {})",
+                metrics.max_depth, thresholds.max_depth
+            ),
+            severity: config.thresholds.severities.get("max-depth"),
+        });
+    }
+    if !disabled_rules.contains("max-repetition") && metrics.repetition > thresholds.max_repetition
+    {
+        issues.push(crate::Issue {
+            message: format!(
+                "High code repetition: {:.1}% (max {:.1}%)",
+                metrics.repetition, thresholds.max_repetition
+            ),
+            severity: config.thresholds.severities.get("max-repetition"),
+        });
+    }
+    if !disabled_rules.contains("max-lines-per-function")
+        && metrics.lines_per_function > thresholds.max_lines_per_function
+    {
+        issues.push(crate::Issue {
+            message: format!(
+                "God functions detected: avg {} lines/function (max {})",
+                metrics.lines_per_function, thresholds.max_lines_per_function
+            ),
+            severity: config.thresholds.severities.get("max-lines-per-function"),
+        });
+    }
+
+    issues
 }

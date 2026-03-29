@@ -121,7 +121,7 @@ impl AnalysisEngine {
         global_chunks: &ChunkMap,
         inspect: bool,
     ) -> Option<ProcessedFile> {
-        let (report, content) = super::analyze_file(path, &self.config)?;
+        let (report, content) = super::analyze_file(path, &self.config, inspect)?;
 
         if inspect {
             let extension = path.extension()?.to_str()?;

@@ -60,7 +60,7 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
         report.lines_per_function
     );
 
-    if report.is_sweet {
+    if report.is_sweet && report.issues.is_empty() {
         let _ = writeln!(
             handle,
             "{} {:<30} {}",
@@ -68,7 +68,18 @@ fn render_file_row<W: Write>(handle: &mut W, report: &FileReport) {
             style(path_str).white(),
             style(stats).dim()
         );
+    } else if report.is_sweet {
+        // Has only warnings
+        let _ = writeln!(
+            handle,
+            "{} {:<30} {} ⚠️",
+            style(" ✦ ").yellow().bold(),
+            style(path_str).yellow(),
+            style(stats).dim()
+        );
+        render_issues(handle, report);
     } else {
+        // Has at least one error
         let _ = writeln!(
             handle,
             "{} {:<30} {} 🍋",
@@ -87,12 +98,12 @@ fn render_issues<W: Write>(handle: &mut W, report: &FileReport) {
     for (i, issue) in report.issues.iter().enumerate() {
         let is_last = i == issue_count - 1 && dup_count == 0;
         let connector = if is_last { " ╰─ " } else { " ├─ " };
-        let _ = writeln!(
-            handle,
-            "    {}{}",
-            style(connector).dim(),
-            style(issue).yellow().italic()
-        );
+        let color_style = if issue.severity == crate::Severity::Error {
+            style(&issue.message).red().italic()
+        } else {
+            style(&issue.message).yellow().italic()
+        };
+        let _ = writeln!(handle, "    {}{}", style(connector).dim(), color_style);
     }
 
     for (i, dup) in report.duplicates.iter().enumerate() {
@@ -120,30 +131,38 @@ fn render_issues<W: Write>(handle: &mut W, report: &FileReport) {
             );
         }
     }
-    let _ = writeln!(handle);
 }
 
 fn print_quiet_summary<W: Write>(handle: &mut W, reports: &[FileReport]) {
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
-    if bitter_count == 0 {
+    if bitter_count == 0 && reports.iter().all(|r| r.issues.is_empty()) {
         return;
     }
 
-    for report in reports.iter().filter(|r| !r.is_sweet) {
+    for report in reports.iter().filter(|r| !r.issues.is_empty()) {
+        let (status, color) = if report.is_sweet {
+            ("WARNING", style(report.path.display()).yellow())
+        } else {
+            ("BITTER ", style(report.path.display()).red())
+        };
+
+        let messages: Vec<String> = report.issues.iter().map(|i| i.message.clone()).collect();
         let _ = writeln!(
             handle,
             "{} {}: {}",
-            style("BITTER").red().bold(),
-            style(report.path.display()).white(),
-            style(report.issues.join(", ")).yellow().italic()
+            style(status).bold(),
+            color,
+            style(messages.join(", ")).yellow().italic()
         );
     }
 
     let total = reports.len();
+    let sweet_count = reports.iter().filter(|r| r.is_sweet).count();
     let _ = writeln!(
         handle,
-        "\nSummary: {total} files analyzed, {} sweet, {bitter_count} bitter",
-        style(total - bitter_count).green(),
+        "\nSummary: {total} files analyzed, {} sweet, {} bitter",
+        style(sweet_count).green(),
+        style(total - sweet_count).red()
     );
 }
 

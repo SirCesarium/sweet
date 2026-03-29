@@ -41,41 +41,52 @@ impl Backend {
             &path,
             &config,
             &disabled_rules,
+            true,
         );
 
         let mut diagnostics = Vec::new();
 
-        for issue in report.issues {
-            let rule = if issue.contains("File too long") {
+        for issue in &report.issues {
+            let rule = if issue.message.contains("File too long") {
                 "max-lines"
-            } else if issue.contains("Too many imports") {
+            } else if issue.message.contains("Too many imports") {
                 "max-imports"
-            } else if issue.contains("Excessive nesting") {
+            } else if issue.message.contains("Excessive nesting") {
                 "max-depth"
-            } else if issue.contains("repetition") {
+            } else if issue.message.contains("repetition") {
                 "max-repetition"
-            } else if issue.contains("God functions") {
+            } else if issue.message.contains("God functions") {
                 "max-lines-per-function"
             } else {
                 "unknown"
             };
 
+            let severity = match config.thresholds.severities.get(rule) {
+                swt::Severity::Error => DiagnosticSeverity::ERROR,
+                swt::Severity::Warning => DiagnosticSeverity::WARNING,
+            };
+
             diagnostics.push(Diagnostic {
                 range: Range::new(Position::new(0, 0), Position::new(0, 80)),
-                severity: Some(DiagnosticSeverity::WARNING),
-                message: format!("🍬 Sweet: {issue}"),
+                severity: Some(severity),
+                message: format!("🍬 Sweet: {}", issue.message),
                 source: Some("sweet".to_string()),
                 data: Some(serde_json::to_value(rule).unwrap_or_default()),
                 ..Default::default()
             });
         }
 
-        for (line, depth) in report.deep_lines {
+        for (line, depth) in &report.deep_lines {
             #[allow(clippy::cast_possible_truncation)]
-            let l = (line as u32).saturating_sub(1);
+            let l = (*line as u32).saturating_sub(1);
+            let severity = match config.thresholds.severities.get("max-depth") {
+                swt::Severity::Error => DiagnosticSeverity::ERROR,
+                swt::Severity::Warning => DiagnosticSeverity::WARNING,
+            };
+
             diagnostics.push(Diagnostic {
                 range: Range::new(Position::new(l, 0), Position::new(l, 80)),
-                severity: Some(DiagnosticSeverity::WARNING),
+                severity: Some(severity),
                 message: format!("🍬 Sweet: Excessive nesting depth: {depth}"),
                 source: Some("sweet".to_string()),
                 data: Some(serde_json::to_value("max-depth").unwrap_or_default()),
@@ -83,7 +94,19 @@ impl Backend {
             });
         }
 
-        for duplicate in report.duplicates {
+        Self::report_duplicates(&report, &config, &mut diagnostics);
+
+        self.client
+            .publish_diagnostics(uri, diagnostics, None)
+            .await;
+    }
+
+    fn report_duplicates(
+        report: &swt::FileReport,
+        config: &Config,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        for duplicate in &report.duplicates {
             #[allow(clippy::cast_possible_truncation)]
             let start_line = (duplicate.line as u32).saturating_sub(1);
             #[allow(clippy::cast_possible_truncation)]
@@ -105,9 +128,14 @@ impl Backend {
                 }
             }
 
+            let severity = match config.thresholds.severities.get("max-repetition") {
+                swt::Severity::Error => DiagnosticSeverity::ERROR,
+                swt::Severity::Warning => DiagnosticSeverity::WARNING,
+            };
+
             diagnostics.push(Diagnostic {
                 range: Range::new(Position::new(start_line, 0), Position::new(end_line, 80)),
-                severity: Some(DiagnosticSeverity::WARNING),
+                severity: Some(severity),
                 message: format!(
                     "🍬 Sweet: Code duplication detected! (repeated in {} other places)",
                     duplicate.occurrences.len()
@@ -118,10 +146,6 @@ impl Backend {
                 ..Default::default()
             });
         }
-
-        self.client
-            .publish_diagnostics(uri, diagnostics, None)
-            .await;
     }
 }
 

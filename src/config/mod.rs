@@ -88,6 +88,9 @@ impl Config {
             self.thresholds.global.max_lines_per_function = og.max_lines_per_function;
         }
 
+        self.thresholds
+            .severities
+            .extend(&other.thresholds.severities);
         self.thresholds.overrides.extend(other.thresholds.overrides);
     }
 

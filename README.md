@@ -171,10 +171,23 @@ jobs:
     "overrides": {
       "rust": { "max_imports": 30 },
       "gdscript": { "max_depth": 7 }
+    },
+    "severities": {
+      "max-repetition": "warning",
+      "max-lines": "error"
     }
   }
 }
 ```
+
+### 🍭 Severity Levels
+
+By default, all rule violations are treated as **errors** (causing a non-zero exit code). You can downgrade specific rules to **warnings** (informational only, exit code 0) in your `.swtrc`:
+
+- `error`: Blocks the build/CI (default).
+- `warning`: Emits a yellow alert but allows the build to pass.
+
+Supported rule keys: `max-lines`, `max-depth`, `max-imports`, `max-repetition`, `max-lines-per-function`.
 
 ### 🍭 In-file Control
 
@@ -186,7 +199,15 @@ Add `@swt-disable <rule1> <rule2>`:
 // @swt-disable max-lines max-repetition
 ```
 
-**Supported rules:** `max-lines`, `max-depth`, `max-imports`, `max-repetition`, `max-lines-per-function`.
+**Supported rules:**
+- `max-lines`: Total source lines.
+- `max-depth`: Control flow nesting depth.
+- `max-imports`: Dependency/Import statement count.
+- `max-repetition`: Project-wide or local code duplication percentage.
+- `max-lines-per-function`: Average lines per function (SRP).
+
+> [!TIP]
+> You can also change the importance of these rules globally or per-language in your `.swtrc` using the `severities` map (e.g., changing an `error` to a `warning`).
 
 To ignore a file entirely, use the `@sweetignore` directive.
 

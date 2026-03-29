@@ -44,6 +44,13 @@
           "py": null,
           "rs": null,
           "ts": null
+        },
+        "severities": {
+          "max_depth": null,
+          "max_imports": null,
+          "max_lines": null,
+          "max_lines_per_function": null,
+          "max_repetition": null
         }
       }
     }
@@ -101,6 +108,82 @@
           "minimum": 0
         }
       }
+    },
+    "RuleSeverities": {
+      "description": "Mapping of rules to their severity levels.",
+      "type": "object",
+      "properties": {
+        "max_depth": {
+          "description": "Severity for `max_depth` rule.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_imports": {
+          "description": "Severity for `max_imports` rule.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_lines": {
+          "description": "Severity for `max_lines` rule.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_lines_per_function": {
+          "description": "Severity for `max_lines_per_function` rule.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_repetition": {
+          "description": "Severity for `max_repetition` rule.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Severity": {
+      "description": "Importance level of a rule violation.",
+      "oneOf": [
+        {
+          "description": "Blocks the build (exit code 1).",
+          "type": "string",
+          "const": "error"
+        },
+        {
+          "description": "Informational warning (exit code 0).",
+          "type": "string",
+          "const": "warning"
+        }
+      ]
     },
     "Thresholds": {
       "description": "Defines health metric limits for analysis.",
@@ -180,6 +263,17 @@
             "py": null,
             "rs": null,
             "ts": null
+          }
+        },
+        "severities": {
+          "description": "Rule-specific severity levels.",
+          "$ref": "#/$defs/RuleSeverities",
+          "default": {
+            "max_depth": null,
+            "max_imports": null,
+            "max_lines": null,
+            "max_lines_per_function": null,
+            "max_repetition": null
           }
         }
       }

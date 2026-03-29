@@ -3,6 +3,68 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Importance level of a rule violation.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum Severity {
+    /// Blocks the build (exit code 1).
+    #[default]
+    Error,
+    /// Informational warning (exit code 0).
+    Warning,
+}
+
+/// Mapping of rules to their severity levels.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct RuleSeverities {
+    /// Severity for `max_lines` rule.
+    pub max_lines: Option<Severity>,
+    /// Severity for `max_depth` rule.
+    pub max_depth: Option<Severity>,
+    /// Severity for `max_imports` rule.
+    pub max_imports: Option<Severity>,
+    /// Severity for `max_repetition` rule.
+    pub max_repetition: Option<Severity>,
+    /// Severity for `max_lines_per_function` rule.
+    pub max_lines_per_function: Option<Severity>,
+}
+
+impl RuleSeverities {
+    /// Returns the severity for a specific rule, defaulting to Error.
+    #[must_use]
+    pub fn get(&self, rule: &str) -> Severity {
+        match rule {
+            "max-lines" => self.max_lines.unwrap_or(Severity::Error),
+            "max-depth" => self.max_depth.unwrap_or(Severity::Error),
+            "max-imports" => self.max_imports.unwrap_or(Severity::Error),
+            "max-repetition" => self.max_repetition.unwrap_or(Severity::Error),
+            "max-lines-per-function" => self.max_lines_per_function.unwrap_or(Severity::Error),
+            _ => Severity::Error,
+        }
+    }
+
+    /// Merges another set of severities into this one.
+    pub fn extend(&mut self, other: &Self) {
+        if let Some(v) = other.max_lines {
+            self.max_lines = Some(v);
+        }
+        if let Some(v) = other.max_depth {
+            self.max_depth = Some(v);
+        }
+        if let Some(v) = other.max_imports {
+            self.max_imports = Some(v);
+        }
+        if let Some(v) = other.max_repetition {
+            self.max_repetition = Some(v);
+        }
+        if let Some(v) = other.max_lines_per_function {
+            self.max_lines_per_function = Some(v);
+        }
+    }
+}
+
 /// Defines health metric limits for analysis.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -75,6 +137,9 @@ pub struct ThresholdsConfig {
     /// Language-specific overrides.
     #[serde(default)]
     pub overrides: ThresholdsOverrides,
+    /// Rule-specific severity levels.
+    #[serde(default)]
+    pub severities: RuleSeverities,
 }
 
 /// Known and custom language overrides.

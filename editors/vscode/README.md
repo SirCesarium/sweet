@@ -39,6 +39,8 @@ The extension provides live structural diagnostics through **VS Code Warnings** 
 
 `Sweet` automatically detects `.swtrc` files in your workspace. If absent, it applies intelligent defaults tuned for each supported language (Rust, Python, GDScript, Lua, etc.).
 
+You can customize the importance of each rule in your `.swtrc`:
+
 ```json
 {
   "thresholds": {
@@ -46,13 +48,18 @@ The extension provides live structural diagnostics through **VS Code Warnings** 
       "max_lines": 400,
       "max_lines_per_function": 200
     },
-    "overrides": {
-      "rust": { "max_imports": 30 },
-      "gdscript": { "max_depth": 7 }
+    "severities": {
+      "max-repetition": "warning",
+      "max-depth": "error"
     }
   }
 }
 ```
+
+### 🍭 In-file Disabling
+
+Use `Ctrl+.` (Quick Fix) or manually add a comment to disable specific rules:
+`@swt-disable max-lines max-repetition max-depth max-imports max-lines-per-function`
 
 -----
 

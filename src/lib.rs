@@ -19,7 +19,18 @@ pub mod update;
 
 // Re-export core configuration types for easier access.
 pub use config::Config;
-pub use config::thresholds::{PartialThresholds, Thresholds, ThresholdsConfig};
+pub use config::thresholds::{
+    PartialThresholds, RuleSeverities, Severity, Thresholds, ThresholdsConfig,
+};
+
+/// A single rule violation with its importance level.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Issue {
+    /// Description of the problem.
+    pub message: String,
+    /// Importance level.
+    pub severity: Severity,
+}
 
 /// Analysis results for a single source file.
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -38,10 +49,10 @@ pub struct FileReport {
     pub functions: usize,
     /// Calculated lines per function.
     pub lines_per_function: usize,
-    /// True if no thresholds were exceeded.
+    /// True if no Error-level thresholds were exceeded.
     pub is_sweet: bool,
     /// List of descriptive issue messages.
-    pub issues: Vec<String>,
+    pub issues: Vec<Issue>,
     /// Effective configuration used for this file.
     pub config: Option<Config>,
     /// Details about duplicated code chunks.

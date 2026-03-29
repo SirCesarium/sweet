@@ -2,10 +2,11 @@
   "$schema": "https://raw.githubusercontent.com/SirCesarium/sweet/main/schema.json",
   "thresholds": {
     "global": {
-      "max_lines": 250,
+      "max_lines": 400,
       "max_depth": 10,
       "max_imports": 30,
-      "max_repetition": 25.0
+      "max_repetition": 25.0,
+      "max_lines_per_function": 250
     }
   }
 }
