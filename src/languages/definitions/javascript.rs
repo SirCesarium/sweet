@@ -7,8 +7,9 @@ impl Language for JavaScript {
         "JavaScript"
     }
     fn extensions(&self) -> &'static [&'static str] {
-        &["js", "mjs", "cjs"]
+        &["js", "mjs", "cjs", "jsx"]
     }
+
     fn line_comment(&self) -> Option<&'static str> {
         Some(CBaseRules::LINE_COMMENT)
     }

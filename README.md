@@ -51,7 +51,7 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 | :--- | :---: | :--- |
 | **Rust** | ✅ | `.rs` |
 | **Python** | ✅ | `.py` |
-| **JavaScript** | ✅ | `.js`, `.mjs`, `.cjs` |
+| **JavaScript** | ✅ | `.js`, `.mjs`, `.cjs`, `.jsx` |
 | **TypeScript** | ✅ | `.ts`, `.tsx` |
 | **Java** | ✅ | `.java` |
 | **C\#** | ✅ | `.cs` |

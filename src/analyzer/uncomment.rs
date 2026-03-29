@@ -22,6 +22,7 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
     let mut string_char = '\"';
     let mut in_block_comment = false;
     let mut in_line_comment = false;
+    let mut is_jsx_block = false;
 
     while let Some(current) = chars.next() {
         if in_block_comment {
@@ -33,6 +34,10 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
                 {
                     chars.next();
                     in_block_comment = false;
+                    if is_jsx_block && chars.peek() == Some(&'}') {
+                        chars.next();
+                        is_jsx_block = false;
+                    }
                     continue;
                 }
             }
@@ -67,6 +72,21 @@ pub fn remove_comments(content: &str, extension: &str, aggressive: bool) -> Stri
             string_char = current;
             result.push(current);
             continue;
+        }
+
+        if (extension == "jsx" || extension == "tsx")
+            && current == '{'
+            && chars.peek() == Some(&'/')
+        {
+            let mut p = chars.clone();
+            p.next();
+            if p.peek() == Some(&'*') {
+                chars.next();
+                chars.next();
+                in_block_comment = true;
+                is_jsx_block = true;
+                continue;
+            }
         }
 
         if let Some((start, _)) = block_delimiters {
@@ -171,6 +191,14 @@ mod tests {
             "let s = \"http://example.com\";",
             "let s = \"http://example.com\";",
             true,
+        );
+    }
+
+    #[test]
+    fn test_jsx_uncommenting() {
+        assert_eq!(
+            remove_comments("const el = <div>{/* comment */}</div>", "tsx", true),
+            "const el = <div></div>"
         );
     }
 }
