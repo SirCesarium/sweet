@@ -116,9 +116,9 @@
                         <Component Id='binary0' Guid='*'>
                             <File
                                 Id='exe0'
-                                Name='sweet-lsp.exe'
+                                Name='sweet-analyzer-lsp.exe'
                                 DiskId='1'
-                                Source='$(var.CargoTargetBinDir)\sweet-lsp.exe'
+                                Source='$(var.CargoTargetBinDir)\sweet-analyzer-lsp.exe'
                                 KeyPath='yes'/>
                         </Component>
                         <Component Id='binary1' Guid='*'>

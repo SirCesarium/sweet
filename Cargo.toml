@@ -65,7 +65,7 @@ schemars = ["dep:schemars"]
 lsp = ["dep:tokio", "dep:tower-lsp"]
 
 [[bin]]
-name = "sweet-lsp"
+name = "sweet-analyzer-lsp"
 path = "src/bin/lsp.rs"
 required-features = ["lsp"]
 
