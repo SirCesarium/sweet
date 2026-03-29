@@ -79,12 +79,14 @@ pub struct ThresholdsOverrides {
     pub py: Option<PartialThresholds>,
     /// JavaScript overrides (.js, .mjs, .cjs)
     pub js: Option<PartialThresholds>,
-    /// TypeScript overrides (.ts, .tsx)
+    /// TypeScript overrides (.ts, .tsx)G
     pub ts: Option<PartialThresholds>,
     /// Java overrides (.java)
     pub java: Option<PartialThresholds>,
     /// C# overrides (.cs)
     pub cs: Option<PartialThresholds>,
+    /// `GDScript` overrides (.gd)
+    pub gd: Option<PartialThresholds>,
     /// Custom overrides for any other extension.
     #[serde(flatten)]
     pub custom: HashMap<String, PartialThresholds>,
@@ -101,6 +103,7 @@ impl ThresholdsOverrides {
             "ts" | "tsx" => self.ts.as_ref(),
             "java" => self.java.as_ref(),
             "cs" => self.cs.as_ref(),
+            "gd" => self.gd.as_ref(),
             _ => self.custom.get(ext),
         }
     }
@@ -121,6 +124,9 @@ impl ThresholdsOverrides {
         }
         if other.java.is_some() {
             self.java = other.java;
+        }
+        if other.gd.is_some() {
+            self.gd = other.gd;
         }
         if other.cs.is_some() {
             self.cs = other.cs;

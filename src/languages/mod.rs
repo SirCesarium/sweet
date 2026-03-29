@@ -52,6 +52,7 @@ impl LanguageRegistry {
             Box::new(definitions::typescript::TypeScript),
             Box::new(definitions::java::Java),
             Box::new(definitions::csharp::CSharp),
+            Box::new(definitions::gdscript::GDScript),
         ];
 
         let mut extension_map = HashMap::new();

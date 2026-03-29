@@ -2,7 +2,7 @@
   "name": "sweet",
   "displayName": "Sweet",
   "description": "Blazing-fast code health and architecture analyzer.",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "publisher": "SirCesarium",
   "icon": "icon.png",
   "engines": {
@@ -19,6 +19,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
+      {
+        "id": "gdscript",
+        "extensions": [".gd"],
+        "aliases": ["GDScript"]
+      },
       {
         "id": "json",
         "extensions": [
@@ -55,7 +60,8 @@
     "onLanguage:javascript",
     "onLanguage:typescript",
     "onLanguage:java",
-    "onLanguage:csharp"
+    "onLanguage:csharp",
+    "onLanguage:gdscript"
   ],
   "scripts": {
     "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",

@@ -40,6 +40,7 @@
 | **TypeScript** | ✅ | `.ts`, `.tsx` |
 | **Java** | ✅ | `.java` |
 | **C\#** | ✅ | `.cs` |
+| **GDScript** | ✅ | `.gd` |
 | **Go** | ⏳ *Planned* | `.go` |
 
 Don't see your favorite language? `Sweet` is designed to be extensible. If you want to add support for a new language (like Go, C++, or Swift), we’d love your help\!

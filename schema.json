@@ -33,6 +33,7 @@
         },
         "overrides": {
           "cs": null,
+          "gd": null,
           "java": null,
           "js": null,
           "py": null,
@@ -148,6 +149,7 @@
           "$ref": "#/$defs/ThresholdsOverrides",
           "default": {
             "cs": null,
+            "gd": null,
             "java": null,
             "js": null,
             "py": null,
@@ -163,6 +165,17 @@
       "properties": {
         "cs": {
           "description": "C# overrides (.cs)",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartialThresholds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gd": {
+          "description": "`GDScript` overrides (.gd)",
           "anyOf": [
             {
               "$ref": "#/$defs/PartialThresholds"
@@ -217,7 +230,7 @@
           ]
         },
         "ts": {
-          "description": "TypeScript overrides (.ts, .tsx)",
+          "description": "TypeScript overrides (.ts, .tsx)G",
           "anyOf": [
             {
               "$ref": "#/$defs/PartialThresholds"

@@ -41,6 +41,7 @@ export function activate(context: ExtensionContext) {
       { scheme: 'file', language: 'typescript' },
       { scheme: 'file', language: 'java' },
       { scheme: 'file', language: 'csharp' },
+      { scheme: 'file', language: 'gdscript' },
     ],
     synchronize: {
       fileEvents: workspace.createFileSystemWatcher('**/.swtrc'),
