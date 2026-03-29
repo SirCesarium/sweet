@@ -20,9 +20,12 @@ jobs:
           # Linux
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            build_lsp: true
+            package: true
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             use_cross: true
+            build_lsp: true
           - target: i686-unknown-linux-gnu
             os: ubuntu-latest
             use_cross: true
@@ -41,6 +44,8 @@ jobs:
           # Windows
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+            build_lsp: true
+            package: true
           - target: i686-pc-windows-msvc
             os: windows-latest
           - target: aarch64-pc-windows-msvc
@@ -48,8 +53,10 @@ jobs:
           # macOS
           - target: x86_64-apple-darwin
             os: macos-latest
+            build_lsp: true
           - target: aarch64-apple-darwin
             os: macos-latest
+            build_lsp: true
 
     steps:
       - uses: actions/checkout@v5
@@ -63,6 +70,7 @@ jobs:
           export-libs: false
 
       - name: 🛠️ Build LSP (sweet-lsp)
+        if: ${{ matrix.build_lsp }}
         uses: sircesarium/refinery-rs@v2.0
         with:
           target: ${{ matrix.target }}
@@ -71,11 +79,30 @@ jobs:
           use-cross: ${{ matrix.use_cross || false }}
           export-libs: false
 
+      - name: 📦 Generate .deb & .rpm
+        if: ${{ matrix.package && matrix.os == 'ubuntu-latest' }}
+        run: |
+          cargo install cargo-deb cargo-generate-rpm
+          cargo deb --target ${{ matrix.target }} --no-build
+          cargo generate-rpm --target ${{ matrix.target }}
+          mkdir -p artifacts/pkg
+          cp target/${{ matrix.target }}/debian/*.deb artifacts/pkg/
+          cp target/generate-rpm/*.rpm artifacts/pkg/ || cp target/${{ matrix.target }}/generate-rpm/*.rpm artifacts/pkg/
+
+      - name: 📦 Generate .msi
+        if: ${{ matrix.package && matrix.os == 'windows-latest' }}
+        run: |
+          cargo install cargo-wix
+          cargo wix --target ${{ matrix.target }} --no-build -o artifacts/pkg/
+        shell: bash
+
       - name: 📦 Upload Artifacts
         uses: actions/upload-artifact@v5
         with:
           name: bin-${{ matrix.target }}
-          path: artifacts/*
+          path: |
+            artifacts/*
+            artifacts/pkg/*
 
   publish:
     name: Create Release & Publish

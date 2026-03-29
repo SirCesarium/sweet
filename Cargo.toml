@@ -30,6 +30,32 @@ serde_json = "1.0.149"
 thiserror = "2.0.18"
 tokio = { version = "1.50.0", features = ["full"], optional = true }
 tower-lsp = { version = "0.20.0", optional = true }
+self_update = "0.41.0"
+
+[package.metadata.deb]
+maintainer = "SirCesarium <contact.cesarmarcano@gmail.com>"
+copyright = "2026, SirCesarium"
+license-file = ["LICENSE"]
+extended-description = "A blazing-fast code health and architecture analyzer designed to keep project architectures lean and sustainable."
+section = "devel"
+priority = "optional"
+assets = [
+    ["target/release/swt", "usr/bin/swt", "755"],
+    ["README.md", "usr/share/doc/swt/README.md", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "swt"
+version = "3.3.0"
+release = "1"
+arch = "x86_64"
+summary = "A blazing-fast code health and architecture analyzer."
+description = "Sweet is a high-performance code health analyzer designed to keep project architectures lean and sustainable."
+license = "MIT"
+assets = [
+    { source = "target/release/swt", dest = "/usr/bin/swt", mode = "755" },
+    { source = "README.md", dest = "/usr/share/doc/swt/README.md", mode = "644" },
+]
 
 [features]
 default = []

@@ -43,10 +43,26 @@ struct Args {
     /// inspect and show detailed code duplication/repetition.
     #[arg(long)]
     inspect: bool,
+
+    /// Check for updates and install if available.
+    #[arg(long)]
+    update: bool,
 }
 
 fn main() -> std::process::ExitCode {
     let args = Args::parse();
+
+    if args.update {
+        return match handle_update() {
+            Ok(_) => std::process::ExitCode::SUCCESS,
+            Err(_) => std::process::ExitCode::FAILURE,
+        };
+    }
+
+    // Fast update check (silent)
+    if !args.quiet && args.json.is_none() {
+        check_for_updates();
+    }
 
     if let Some(file_path) = args.uncomment {
         if handle_uncomment(&file_path, args.aggressive) {
@@ -115,6 +131,62 @@ fn handle_uncomment(path: &Path, aggressive: bool) -> bool {
             false
         }
     }
+}
+
+fn check_for_updates() {
+    let current_version = env!("CARGO_PKG_VERSION");
+    let releases = self_update::backends::github::ReleaseList::configure()
+        .repo_owner("SirCesarium")
+        .repo_name("sweet")
+        .build();
+
+    if let Ok(releases) = releases {
+        if let Ok(latest) = releases.fetch() {
+            if let Some(latest_release) = latest.first() {
+                if self_update::version::bump_is_greater(current_version, &latest_release.version)
+                    .unwrap_or(false)
+                {
+                    println!(
+                        "\n{}",
+                        style(format!(
+                            " 🚀 A new version of Sweet is available: v{} (current: v{})",
+                            latest_release.version, current_version
+                        ))
+                        .yellow()
+                        .bold()
+                    );
+                    println!(
+                        "    Run {} to update.\n",
+                        style("swt --update").cyan().italic()
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn handle_update() -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", style("Checking for updates...").cyan());
+    let status = self_update::backends::github::Update::configure()
+        .repo_owner("SirCesarium")
+        .repo_name("sweet")
+        .bin_name("swt")
+        .show_download_progress(true)
+        .current_version(env!("CARGO_PKG_VERSION"))
+        .build()?
+        .update()?;
+
+    if status.updated() {
+        println!(
+            "{}",
+            style(format!("Updated to v{}!", status.version()))
+                .green()
+                .bold()
+        );
+    } else {
+        println!("{}", style("Sweet is already up to date.").green());
+    }
+    Ok(())
 }
 
 fn show_branding() {
