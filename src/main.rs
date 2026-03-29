@@ -58,7 +58,7 @@ enum Commands {
 fn main() -> std::process::ExitCode {
     let args = Args::parse();
 
-    if let Some(Commands::Update) = args.command {
+    if matches!(args.command, Some(Commands::Update)) {
         return match handle_update() {
             Ok(()) => std::process::ExitCode::SUCCESS,
             Err(_) => std::process::ExitCode::FAILURE,
