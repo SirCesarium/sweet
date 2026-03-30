@@ -2,7 +2,10 @@
 
 pub mod thresholds;
 
-use crate::languages::{Language, LanguageRegistry};
+use crate::{
+    errors::SwtError,
+    languages::{Language, LanguageRegistry},
+};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -48,10 +51,25 @@ impl Config {
 
         while let Some(p) = current {
             let config_path = p.join(".swtrc");
-            if let Ok(content) = fs::read_to_string(config_path)
-                && let Ok(config) = serde_json::from_str::<Self>(&content)
-            {
-                configs.push(config);
+            if config_path.is_file() {
+                match fs::read_to_string(&config_path) {
+                    Ok(content) => match serde_json::from_str::<Self>(&content) {
+                        Ok(config) => configs.push(config),
+                        Err(e) => {
+                            let report = miette::Report::from(SwtError::ConfigError(e)).wrap_err(
+                                format!("Invalid configuration at {}", config_path.display()),
+                            );
+                            eprintln!("{report:?}");
+                        }
+                    },
+                    Err(e) => {
+                        let report = miette::Report::from(SwtError::IoError(e)).wrap_err(format!(
+                            "Failed to read .swtrc at {}",
+                            config_path.display()
+                        ));
+                        eprintln!("{report:?}");
+                    }
+                }
             }
             current = p.parent();
         }
