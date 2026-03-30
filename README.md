@@ -11,7 +11,6 @@
 <h1 align="center">🍬 Sweet (swt)</h1>
 
 <p align="center">
-  <strong>The first stable release: v4.0.0</strong><br>
   The quality gate for sustainable software architecture.
 </p>
 
