@@ -7,7 +7,7 @@ Thank you for your interest in improving Sweet! This guide provides technical sp
 ## 🏗️ Project Structure
 
 - **`src/`**: The Rust core.
-  - **`analyzer/`**: Logic for metrics (complexity, repetition, functions, etc.).
+  - **`analyzer/`**: Logic for metrics (complexity, repetition, nesting depth, etc.).
   - **`languages/`**: Language definitions and the Strategy Pattern registry.
   - **`config/`**: Configuration resolution and hierarchical threshold merging.
   - **`bin/lsp.rs`**: The Language Server Protocol implementation.

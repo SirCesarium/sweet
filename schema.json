@@ -4,6 +4,14 @@
   "description": "Global analyzer configuration.",
   "type": "object",
   "properties": {
+    "$schema": {
+      "description": "Json schema.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "writeOnly": true
+    },
     "exclude": {
       "description": "Glob patterns for files/directories to exclude.",
       "type": "array",
@@ -53,6 +61,7 @@
       }
     }
   },
+  "additionalProperties": false,
   "$defs": {
     "PartialThresholds": {
       "description": "Sparse threshold structure for specific overrides.",
@@ -202,7 +211,8 @@
           "default": 4,
           "minimum": 0
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ThresholdsConfig": {
       "description": "Threshold management container.",
@@ -246,7 +256,8 @@
             "max_repetition": null
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ThresholdsOverrides": {
       "description": "Known and custom language overrides.",

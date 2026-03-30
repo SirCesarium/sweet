@@ -105,7 +105,15 @@ fn run_analysis(
     quiet: bool,
     inspect: bool,
 ) -> ExitCode {
-    let config = Config::load(path);
+    let config = match Config::load(path) {
+        Ok(c) => c,
+        Err(e) => {
+            let report = miette::Report::from(e);
+            eprintln!("{report:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+
     let engine = AnalysisEngine::new(path.to_path_buf(), config);
 
     if !quiet && json.is_none() {

@@ -62,6 +62,7 @@ impl RuleSeverities {
 /// Defines health metric limits for analysis.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
 pub struct Thresholds {
     /// Maximum allowed source lines of code.
     #[serde(default = "default_max_lines")]
@@ -116,6 +117,7 @@ impl Default for Thresholds {
 /// Threshold management container.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
 pub struct ThresholdsConfig {
     /// Default thresholds for all files.
     #[serde(default)]

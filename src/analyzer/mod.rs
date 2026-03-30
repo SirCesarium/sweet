@@ -31,15 +31,15 @@ pub fn analyze_file(
     _base_config: &Config,
     inspect: bool,
 ) -> Option<(FileReport, String)> {
-    let parent = path
-        .parent()
-        .unwrap_or_else(|| Path::new("."))
-        .to_path_buf();
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
 
-    let config = CONFIG_CACHE
-        .entry(parent)
-        .or_insert_with(|| Config::load(path))
-        .clone();
+    let config = if let Some(cached) = CONFIG_CACHE.get(parent) {
+        cached.clone()
+    } else {
+        let loaded = Config::load(parent).ok()?;
+        CONFIG_CACHE.insert(parent.to_path_buf(), loaded.clone());
+        loaded
+    };
 
     if config.is_excluded(path) {
         return None;

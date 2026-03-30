@@ -6,9 +6,10 @@ use crate::{
     errors::SwtError,
     languages::{Language, LanguageRegistry},
 };
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::Path;
+use std::{fs, path::PathBuf, sync::LazyLock};
 use thresholds::{
     Thresholds, ThresholdsConfig, default_max_depth, default_max_imports, default_max_lines,
     default_max_repetition, default_min_duplicate_lines,
@@ -17,7 +18,11 @@ use thresholds::{
 /// Global analyzer configuration.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
 pub struct Config {
+    /// Json schema.
+    #[serde(rename = "$schema", skip_serializing)]
+    pub schema: Option<String>,
     /// Glob patterns for files/directories to exclude.
     #[serde(default = "default_excludes")]
     pub exclude: Vec<String>,
@@ -38,38 +43,40 @@ fn default_excludes() -> Vec<String> {
     ]
 }
 
+static CONFIG_CACHE: LazyLock<DashMap<PathBuf, Config>> = LazyLock::new(DashMap::new);
+
 impl Config {
     /// Recursively loads and merges .swtrc files up to the root.
-    #[must_use]
-    pub fn load(path: &Path) -> Self {
-        let mut configs = Vec::new();
-        let mut current = if path.is_file() {
+    ///
+    /// # Errors
+    ///
+    /// Returns `SwtError::IoError` if a file cannot be read, or `SwtError::ConfigError`
+    /// if the JSON content is invalid.
+    pub fn load(path: &Path) -> Result<Self, SwtError> {
+        let target_dir = if path.is_file() {
             path.parent()
+                .unwrap_or_else(|| Path::new("."))
+                .to_path_buf()
         } else {
-            Some(path)
+            path.to_path_buf()
         };
+
+        if let Some(cached) = CONFIG_CACHE.get(&target_dir) {
+            return Ok(cached.clone());
+        }
+
+        let mut configs = Vec::new();
+        let mut current = Some(target_dir.as_path());
 
         while let Some(p) = current {
             let config_path = p.join(".swtrc");
             if config_path.is_file() {
-                match fs::read_to_string(&config_path) {
-                    Ok(content) => match serde_json::from_str::<Self>(&content) {
-                        Ok(config) => configs.push(config),
-                        Err(e) => {
-                            let report = miette::Report::from(SwtError::ConfigError(e)).wrap_err(
-                                format!("Invalid configuration at {}", config_path.display()),
-                            );
-                            eprintln!("{report:?}");
-                        }
-                    },
-                    Err(e) => {
-                        let report = miette::Report::from(SwtError::IoError(e)).wrap_err(format!(
-                            "Failed to read .swtrc at {}",
-                            config_path.display()
-                        ));
-                        eprintln!("{report:?}");
-                    }
-                }
+                let content = fs::read_to_string(&config_path).map_err(SwtError::IoError)?;
+
+                let config =
+                    serde_json::from_str::<Self>(&content).map_err(SwtError::ConfigError)?;
+
+                configs.push(config);
             }
             current = p.parent();
         }
@@ -78,7 +85,9 @@ impl Config {
         for config in configs.into_iter().rev() {
             final_config.merge(config);
         }
-        final_config
+
+        CONFIG_CACHE.insert(target_dir, final_config.clone());
+        Ok(final_config)
     }
 
     /// Merges another configuration into the current one.

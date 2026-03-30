@@ -9,19 +9,14 @@
 
 mod lsp;
 
-use std::sync::Arc;
 use tokio::io::{stdin, stdout};
-use tokio::sync::RwLock;
 use tower_lsp::{LspService, Server};
 
 use crate::lsp::Backend;
 
 #[tokio::main]
 async fn main() {
-    let (service, socket) = LspService::new(|client| Backend {
-        client,
-        workspace_root: Arc::new(RwLock::new(None)),
-    });
+    let (service, socket) = LspService::new(Backend::new);
     Server::new(stdin(), stdout(), socket).serve(service).await;
 }
 
@@ -35,10 +30,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_initialization() -> StdResult<(), Box<dyn Error>> {
-        let (service, _) = LspService::new(|client| Backend {
-            client,
-            workspace_root: Arc::new(RwLock::new(None)),
-        });
+        let (service, _) = LspService::new(Backend::new);
         let params = InitializeParams::default();
 
         let result = service.inner().initialize(params).await?;
@@ -48,10 +40,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unsupported_file() -> StdResult<(), Box<dyn Error>> {
-        let (service, _) = LspService::new(|client| Backend {
-            client,
-            workspace_root: Arc::new(RwLock::new(None)),
-        });
+        let (service, _) = LspService::new(Backend::new);
         let uri = Url::parse("file:///test.txt")?;
         service.inner().validate_document(uri, "test").await;
         Ok(())
