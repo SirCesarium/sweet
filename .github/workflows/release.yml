@@ -85,32 +85,28 @@ jobs:
           cargo install cargo-deb cargo-generate-rpm
           cargo deb --target ${{ matrix.target }} --no-build
           cargo generate-rpm --target ${{ matrix.target }}
-          mkdir -p artifacts/pkg
-          cp target/${{ matrix.target }}/debian/*.deb artifacts/pkg/
-          cp target/generate-rpm/*.rpm artifacts/pkg/ || cp target/${{ matrix.target }}/generate-rpm/*.rpm artifacts/pkg/
+          mkdir -p artifacts/
+          cp target/${{ matrix.target }}/debian/*.deb artifacts/
+          cp target/generate-rpm/*.rpm artifacts/ || cp target/${{ matrix.target }}/generate-rpm/*.rpm artifacts/
 
       - name: 📦 Generate .msi
         if: ${{ matrix.package && matrix.os == 'windows-latest' }}
         run: |
-          mkdir -p artifacts/pkg
+          mkdir -p artifacts/
           mkdir -p target/${{ matrix.target }}/release
 
           cp artifacts/swt.exe target/${{ matrix.target }}/release/swt.exe || cp artifacts/swt_${{ matrix.target }}.exe target/${{ matrix.target }}/release/swt.exe || true
           cp artifacts/sweet-analyzer-lsp.exe target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe || cp artifacts/sweet-analyzer-lsp_${{ matrix.target }}.exe target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe || true
 
-          ls -R target/${{ matrix.target }}/release/
-
           cargo install cargo-wix
-          cargo wix --target ${{ matrix.target }} --no-build -o artifacts/pkg/
+          cargo wix --target ${{ matrix.target }} --no-build -o artifacts/
         shell: bash
 
       - name: 📦 Upload Artifacts
         uses: actions/upload-artifact@v5
         with:
           name: bin-${{ matrix.target }}
-          path: |
-            artifacts/*
-            artifacts/pkg/*
+          path: artifacts/*
 
   publish:
     name: Create Release & Publish
@@ -133,5 +129,11 @@ jobs:
       - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: all-artifacts/*
+          files: |
+            all-artifacts/*.exe
+            all-artifacts/*.msi
+            all-artifacts/*.deb
+            all-artifacts/*.rpm
+            all-artifacts/swt*
+            all-artifacts/sweet-analyzer-lsp*
           generate_release_notes: true
