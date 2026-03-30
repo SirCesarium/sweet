@@ -17,7 +17,18 @@ import {
 
 let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
+  const config = workspace.getConfiguration('sweet');
+  const mode = config.get<string>('enabledMode', 'auto');
+
+  if (mode === 'auto') {
+    const swtrc = await workspace.findFiles('.swtrc', null, 1);
+    if (swtrc.length === 0) {
+      console.log('[Sweet] Dormant mode: .swtrc not found. No analysis performed.');
+      return;
+    }
+  }
+
   const platform = os.platform();
   let binaryName = 'sweet-analyzer-lsp-linux';
 

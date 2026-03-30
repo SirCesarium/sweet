@@ -2,7 +2,8 @@
   "name": "sweet",
   "displayName": "Sweet",
   "description": "Blazing-fast code health and architecture analyzer.",
-  "version": "4.0.0",
+  "version": "4.1.0",
+
 
   "publisher": "SirCesarium",
   "icon": "icon.png",
@@ -62,6 +63,15 @@
       "type": "object",
       "title": "Sweet",
       "properties": {
+        "sweet.enabledMode": {
+          "type": "string",
+          "enum": [
+            "always",
+            "auto"
+          ],
+          "default": "auto",
+          "description": "Control when Sweet is enabled. 'always' enables it for all supported files. 'auto' only enables it if a .swtrc file is found in the workspace."
+        },
         "sweet.trace.server": {
           "type": "string",
           "enum": [

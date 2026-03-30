@@ -8,32 +8,42 @@
 <strong>Real-time code health alerts for professional developers.</strong>
 </p>
 
-`Sweet` is a blazing-fast code health analyzer designed to keep project architectures lean and sustainable. It is **plug-and-play**: it works immediately with zero configuration using intelligent defaults, while offering the flexibility to enforce stricter standards via `.swtrc` files.
+`Sweet` is a blazing-fast code health analyzer designed to keep project architectures lean and sustainable. It provides real-time feedback on technical debt, logic density, and structural integrity directly in your editor.
 
------
+---
+
+## 🚀 Getting Started
+
+1. **Install the extension.**
+2. **Activate it**: Create a `.swtrc` file (even an empty `{}`) in your project root.
+3. **Enjoy**: Sweet will immediately start analyzing your code.
+
+_Note: You can change this behavior to "Always On" in the VS Code settings (`sweet.enabledMode`)._
+
+---
 
 ## 🍬 Features
 
-  - **Structural Guard:** Real-time analysis of file weight and logic density.
-  - **Logical Highlighting:** Immediate visual feedback for excessive nesting and cognitive complexity.
-  - **Repetition Alerts:** Identifies duplicated code blocks with links to other occurrences.
-  - **Quick Fix Integration:** Use `Ctrl+.` to granularly disable rules for specific files via `@swt-disable`.
-  - **Deep Integration:** Full support for hierarchical `.swtrc` configuration files.
-  - **Zero Latency:** Rust-powered core ensures a smooth typing experience without editor lag.
+- **Structural Guard:** Real-time analysis of file weight and logic density.
+- **Logical Highlighting:** Immediate visual feedback for excessive nesting and cognitive complexity.
+- **Repetition Alerts:** Identifies duplicated code blocks with links to other occurrences.
+- **Quick Fix Integration:** Use `Ctrl+.` to granularly disable rules for specific files via `@swt-disable`.
+- **Deep Integration:** Full support for hierarchical `.swtrc` configuration files.
+- **Zero Latency:** Rust-powered core ensures a smooth typing experience without editor lag.
 
------
+---
 
 ## 🍭 How it works
 
 The extension provides live structural diagnostics through **VS Code Warnings** (yellow squiggles) for:
 
-1.  **File Bloat:** Total line count exceeds thresholds.
-2.  **God Functions:** High average lines-per-function (Single Responsibility Principle).
-3.  **Logical Depth:** Deeply nested control flow (cognitive complexity).
-4.  **Tangled Coupling:** Excessive import/dependency statements.
-5.  **Local Repetition:** Duplicated logic within the same file.
+1. **File Bloat:** Total line count exceeds thresholds.
+2. **God Functions:** High average lines-per-function (Single Responsibility Principle).
+3. **Logical Depth:** Deeply nested control flow (cognitive complexity).
+4. **Tangled Coupling:** Excessive import/dependency statements.
+5. **Local Repetition:** Duplicated logic within the same file.
 
------
+---
 
 ## ⚙️ Configuration
 
@@ -44,7 +54,7 @@ You can customize the importance of each rule in your `.swtrc`:
 ```json
 {
   "thresholds": {
-    "global": { 
+    "global": {
       "max_lines": 400,
       "max_lines_per_function": 200
     },
@@ -61,7 +71,7 @@ You can customize the importance of each rule in your `.swtrc`:
 Use `Ctrl+.` (Quick Fix) or manually add a comment to disable specific rules:
 `@swt-disable max-lines max-repetition max-depth max-imports max-lines-per-function`
 
------
+---
 
 ## 🤝 Contributing
 
