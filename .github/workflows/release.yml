@@ -94,8 +94,11 @@ jobs:
         run: |
           mkdir -p artifacts/pkg
           mkdir -p target/${{ matrix.target }}/release
-          cp target/${{ matrix.target }}/release/swt.exe target/${{ matrix.target }}/release/swt.exe || true
-          cp target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe || true
+
+          cp artifacts/swt.exe target/${{ matrix.target }}/release/swt.exe || cp artifacts/swt_${{ matrix.target }}.exe target/${{ matrix.target }}/release/swt.exe || true
+          cp artifacts/sweet-analyzer-lsp.exe target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe || cp artifacts/sweet-analyzer-lsp_${{ matrix.target }}.exe target/${{ matrix.target }}/release/sweet-analyzer-lsp.exe || true
+
+          ls -R target/${{ matrix.target }}/release/
 
           cargo install cargo-wix
           cargo wix --target ${{ matrix.target }} --no-build -o artifacts/pkg/
