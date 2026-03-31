@@ -33,7 +33,7 @@ pub trait Language: Send + Sync {
         crate::Thresholds::default()
     }
 
-    /// Counts the number of imports in the content using the language's specific logic.
+    /// Count the number of imports in the content using the language's specific logic.
     fn count_imports(&self, content: &str) -> usize {
         let keywords = self.import_keywords();
         content
@@ -64,7 +64,7 @@ pub struct LanguageRegistry {
 static REGISTRY: OnceLock<LanguageRegistry> = OnceLock::new();
 
 impl LanguageRegistry {
-    /// Returns the global registry instance.
+    /// Return the global registry instance.
     #[must_use]
     pub fn get() -> &'static Self {
         REGISTRY.get_or_init(Self::new)
@@ -98,7 +98,7 @@ impl LanguageRegistry {
         }
     }
 
-    /// Resolves a language strategy by file extension.
+    /// Resolve a language strategy by file extension.
     #[must_use]
     pub fn get_by_extension(&self, ext: &str) -> Option<&dyn Language> {
         self.extension_map
@@ -106,7 +106,7 @@ impl LanguageRegistry {
             .map(|&i| self.languages[i].as_ref())
     }
 
-    /// Returns a list of all supported file extensions.
+    /// Return a list of all supported file extensions.
     #[must_use]
     pub fn supported_extensions(&self) -> Vec<&'static str> {
         self.extension_map.keys().copied().collect()

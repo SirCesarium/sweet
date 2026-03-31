@@ -12,7 +12,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-/// Checks for updates and prints a message if a new version is available.
+/// Check for updates and prints a message if a new version is available.
 pub fn check_for_updates() {
     let current_version = env!("CARGO_PKG_VERSION");
 
@@ -38,11 +38,11 @@ pub fn check_for_updates() {
     }
 }
 
-/// Performs the update process with a beautiful progress bar.
+/// Perform the update process with a beautiful progress bar.
 ///
 /// # Errors
 ///
-/// Returns an error if the network request fails, the binary cannot be extracted,
+/// Return an error if the network request fails, the binary cannot be extracted,
 /// or the current executable cannot be replaced.
 pub fn handle_update() -> Result<(), Box<dyn error::Error>> {
     println!("{}", style("🔍 Checking for updates...").cyan());

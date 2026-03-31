@@ -117,7 +117,7 @@ impl AnalysisEngine {
         reports
     }
 
-    /// Analyzes a file and optionally collects chunk hashes for global duplication detection.
+    /// Analyze a file and optionally collects chunk hashes for global duplication detection.
     fn analyze_and_collect(
         &self,
         path: &Path,

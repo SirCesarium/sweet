@@ -2,7 +2,7 @@
 
 use crate::languages::LanguageRegistry;
 
-/// Counts the number of module imports/includes based on language-specific keywords.
+/// Count the number of module imports/includes based on language-specific keywords.
 #[must_use]
 pub fn count_imports(content: &str, extension: &str) -> usize {
     let registry = LanguageRegistry::get();

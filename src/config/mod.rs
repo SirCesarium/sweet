@@ -50,7 +50,7 @@ impl Config {
     ///
     /// # Errors
     ///
-    /// Returns `SwtError::IoError` if a file cannot be read, or `SwtError::ConfigError`
+    /// Return `SwtError::IoError` if a file cannot be read, or `SwtError::ConfigError`
     /// if the JSON content is invalid.
     pub fn load(path: &Path) -> Result<Self, SwtError> {
         let target_dir = if path.is_file() {
@@ -90,7 +90,7 @@ impl Config {
         Ok(final_config)
     }
 
-    /// Merges another configuration into the current one.
+    /// Merge another configuration into the current one.
     pub fn merge(&mut self, other: Self) {
         if !other.exclude.is_empty() {
             self.exclude.extend(other.exclude);
@@ -119,7 +119,7 @@ impl Config {
         self.thresholds.overrides.extend(other.thresholds.overrides);
     }
 
-    /// Resolves effective thresholds for a specific file extension.
+    /// Resolve effective thresholds for a specific file extension.
     #[must_use]
     pub fn get_thresholds(&self, extension: &str) -> Thresholds {
         let registry = LanguageRegistry::get();
@@ -166,7 +166,7 @@ impl Config {
         t
     }
 
-    /// Validates if a file is supported based on its extension.
+    /// Validate if a file is supported based on its extension.
     #[must_use]
     pub fn is_supported_file(path: &Path) -> bool {
         let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
@@ -181,7 +181,7 @@ impl Config {
         }
     }
 
-    /// Checks if a path should be excluded according to configured patterns.
+    /// Check if a path should be excluded according to configured patterns.
     #[must_use]
     pub fn is_excluded(&self, path: &Path) -> bool {
         let path_str = path.to_string_lossy();

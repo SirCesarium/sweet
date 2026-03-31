@@ -1,6 +1,6 @@
 //! Line counting and file volume metrics.
 
-/// Counts the number of source lines in the content.
+/// Count the number of source lines in the content.
 #[must_use]
 pub fn count_lines(content: &str) -> usize {
     content.lines().count()

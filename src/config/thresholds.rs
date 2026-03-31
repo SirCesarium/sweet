@@ -30,7 +30,7 @@ pub struct RuleSeverities {
 }
 
 impl RuleSeverities {
-    /// Returns the severity for a specific rule, defaulting to Error.
+    /// Return the severity for a specific rule, defaulting to Error.
     #[must_use]
     pub fn get(&self, rule: &str) -> Severity {
         match rule {
@@ -42,7 +42,7 @@ impl RuleSeverities {
         }
     }
 
-    /// Merges another set of severities into this one.
+    /// Merge another set of severities into this one.
     pub const fn extend(&mut self, other: &Self) {
         if let Some(v) = other.max_lines {
             self.max_lines = Some(v);
@@ -162,7 +162,7 @@ pub struct ThresholdsOverrides {
 }
 
 impl ThresholdsOverrides {
-    /// Returns the override for a specific extension if it exists.
+    /// Return the override for a specific extension if it exists.
     #[must_use]
     pub fn get(&self, ext: &str) -> Option<&PartialThresholds> {
         match ext {

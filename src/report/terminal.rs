@@ -4,7 +4,7 @@ use crate::FileReport;
 use console::{Emoji, style};
 use std::io::{self, BufWriter, Write};
 
-/// Renders a summary of file reports to the terminal.
+/// Render a summary of file reports to the terminal.
 pub fn print_summary(reports: &[FileReport], quiet: bool) {
     let stdout = io::stdout();
     let mut handle = BufWriter::new(stdout.lock());

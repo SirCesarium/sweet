@@ -44,7 +44,7 @@ impl Deref for FileContent {
 /// Thread-safe cache for directory-specific configuration resolution.
 static CONFIG_CACHE: LazyLock<DashMap<PathBuf, Config>> = LazyLock::new(DashMap::new);
 
-/// Analyzes a single file's health and returns a detailed report.
+/// Analyze a single file's health and returns a detailed report.
 #[must_use]
 pub fn analyze_file(
     path: &Path,

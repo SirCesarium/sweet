@@ -12,7 +12,7 @@ pub fn analyze_depth(content: &str, indent_size: usize) -> usize {
         .unwrap_or(0)
 }
 
-/// Finds lines where the nesting depth exceeds a given threshold.
+/// Find lines where the nesting depth exceeds a given threshold.
 #[must_use]
 pub fn find_deep_lines(content: &str, indent_size: usize, threshold: usize) -> Vec<(usize, usize)> {
     get_line_depths(content, indent_size)

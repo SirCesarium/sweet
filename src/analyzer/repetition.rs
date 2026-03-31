@@ -12,7 +12,7 @@ pub struct RepetitionResult {
     pub hashes: Vec<u64>,
 }
 
-/// Analyzes content for repeated lines and returns a summary.
+/// Analyze content for repeated lines and returns a summary.
 #[must_use]
 pub fn analyze_repetition(content: &str, window_size: usize) -> RepetitionResult {
     if content.is_empty() || window_size == 0 {

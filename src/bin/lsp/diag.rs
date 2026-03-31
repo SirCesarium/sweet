@@ -60,7 +60,7 @@ pub fn generate(report: &FileReport, config: &Config) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// Appends duplication diagnostics to the list.
+/// Append duplication diagnostics to the list.
 fn report_duplicates(report: &FileReport, config: &Config, diagnostics: &mut Vec<Diagnostic>) {
     for duplicate in &report.duplicates {
         #[allow(clippy::cast_possible_truncation)]
