@@ -42,7 +42,10 @@ mod tests {
     async fn test_unsupported_file() -> StdResult<(), Box<dyn Error>> {
         let (service, _) = LspService::new(Backend::new);
         let uri = Url::parse("file:///test.txt")?;
-        service.inner().validate_document(uri, "test").await;
+        service
+            .inner()
+            .validate_document(uri, "test".to_string())
+            .await;
         Ok(())
     }
 }

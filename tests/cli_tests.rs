@@ -1,3 +1,4 @@
+// @swt-disable max-repetition
 //! Integration tests for the Sweet CLI.
 
 use assert_cmd::Command;
@@ -22,15 +23,13 @@ fn test_cli_empty_dir() {
 fn test_cli_violation_failure() {
     let dir = tempdir().expect("failed to create temp dir");
     let file_path = dir.path().join("main.rs");
-    
+
     // Create a file with many lines to trigger a violation
     let content = "println!(\"sweet\");\n".repeat(400);
     fs::write(&file_path, content).expect("failed to write test file");
 
     let mut cmd = Command::cargo_bin("swt").expect("binary should exist");
-    cmd.arg(dir.path())
-        .assert()
-        .failure();
+    cmd.arg(dir.path()).assert().failure();
 }
 
 /// Tests the JSON output format.

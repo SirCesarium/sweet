@@ -13,6 +13,7 @@ use swt::analyzer::ignore::get_disabled_rules;
 use swt::languages::{Language, LanguageRegistry};
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
+use tokio::time::sleep;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     CodeAction, CodeActionKind, CodeActionOrCommand, CodeActionParams,
@@ -39,45 +40,50 @@ impl Backend {
         }
     }
 
-    pub async fn validate_document(&self, uri: Url, content: &str) {
-        let Ok(path) = uri.to_file_path() else { return };
+    pub async fn validate_document(&self, uri: Url, content: String) {
+        if let Some(report) = self.perform_analysis(uri.clone(), content).await {
+            let config = Config::load(&uri.to_file_path().unwrap_or_default()).unwrap_or_default();
+            let diagnostics = diag::generate(&report, &config);
+            self.client
+                .publish_diagnostics(uri, diagnostics, None)
+                .await;
+        }
+    }
+
+    async fn perform_analysis(&self, uri: Url, content: String) -> Option<swt::FileReport> {
+        let path = uri.to_file_path().ok()?;
 
         if !Config::is_supported_file(&path) {
-            return;
+            return None;
         }
 
-        if let Some(ref root) = *self.workspace_root.read().await
-            && !path.starts_with(root)
         {
-            return;
+            let root_lock = self.workspace_root.read().await;
+            if let Some(ref root) = *root_lock
+                && !path.starts_with(root)
+            {
+                return None;
+            }
         }
 
         let config = Config::load(&path).unwrap_or_default();
-
         if config.is_excluded(&path) {
-            return;
+            return None;
         }
 
-        let extension = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or_default();
+        let extension = path.extension()?.to_str()?;
         let thresholds = config.get_thresholds(extension);
-        let disabled_rules = get_disabled_rules(content);
-        let report = analyze_content(
-            content,
+        let disabled_rules = get_disabled_rules(&content);
+
+        Some(analyze_content(
+            &content,
             extension,
             &thresholds,
             &path,
             &config,
             &disabled_rules,
             true,
-        );
-
-        let diagnostics = diag::generate(&report, &config);
-        self.client
-            .publish_diagnostics(uri, diagnostics, None)
-            .await;
+        ))
     }
 }
 
@@ -108,7 +114,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.validate_document(params.text_document.uri, &params.text_document.text)
+        self.validate_document(params.text_document.uri, params.text_document.text)
             .await;
     }
 
@@ -126,22 +132,23 @@ impl LanguageServer for Backend {
         let workspace_root = self.workspace_root.clone();
         let pending_validations = self.pending_validations.clone();
         let uri_clone = uri.clone();
+        let content = change.text;
 
         let handle = tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_millis(300)).await;
+            sleep(Duration::from_millis(300)).await;
 
-            let Ok(path) = uri_clone.to_file_path() else {
-                return;
-            };
-
-            if let Some(ref root) = *workspace_root.read().await
-                && !path.starts_with(root)
-            {
+            let path = uri_clone.to_file_path().unwrap_or_default();
+            if !Config::is_supported_file(&path) {
                 return;
             }
 
-            if !Config::is_supported_file(&path) {
-                return;
+            {
+                let root_lock = workspace_root.read().await;
+                if let Some(ref root) = *root_lock
+                    && !path.starts_with(root)
+                {
+                    return;
+                }
             }
 
             let config = Config::load(&path).unwrap_or_default();
@@ -154,9 +161,10 @@ impl LanguageServer for Backend {
                 .and_then(|e| e.to_str())
                 .unwrap_or_default();
             let thresholds = config.get_thresholds(extension);
-            let disabled_rules = get_disabled_rules(&change.text);
+            let disabled_rules = get_disabled_rules(&content);
+
             let report = analyze_content(
-                &change.text,
+                &content,
                 extension,
                 &thresholds,
                 &path,
@@ -166,7 +174,7 @@ impl LanguageServer for Backend {
             );
 
             let diagnostics = diag::generate(&report, &config);
-            let _ = client
+            let () = client
                 .publish_diagnostics(uri_clone.clone(), diagnostics, None)
                 .await;
 

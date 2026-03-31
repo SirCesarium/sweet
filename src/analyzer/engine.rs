@@ -1,5 +1,6 @@
 //! High-level analysis orchestration and parallel file processing.
 
+use crate::analyzer::FileContent;
 use crate::analyzer::repetition;
 use crate::uncomment::remove_comments;
 use crate::{Config, FileReport, RepetitionDetail};
@@ -26,7 +27,7 @@ pub struct AnalysisEngine {
 /// Internal structure to hold report and original file content.
 struct ProcessedFile {
     report: FileReport,
-    content: String,
+    content: FileContent,
 }
 
 impl AnalysisEngine {

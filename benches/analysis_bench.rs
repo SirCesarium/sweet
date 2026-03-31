@@ -1,10 +1,11 @@
+// @swt-disable max-repetition
 //! Benchmarks for the Sweet code analysis engine.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use swt::analyzer::analyze_content;
 use swt::Config;
+use swt::analyzer::analyze_content;
 
 /// Benchmark for analyzing a standard-sized Rust file.
 fn bench_standard_analysis(c: &mut Criterion) {
@@ -36,7 +37,8 @@ fn bench_repetition_heavy(c: &mut Criterion) {
     let extension = "rs";
     let thresholds = config.get_thresholds(extension);
     let path = PathBuf::from("heavy.rs");
-    let content = "fn duplicate() {\n    let x = 1;\n    let y = 2;\n    let z = x + y;\n}\n".repeat(500);
+    let content =
+        "fn duplicate() {\n    let x = 1;\n    let y = 2;\n    let z = x + y;\n}\n".repeat(500);
     let disabled_rules = HashSet::new();
 
     c.bench_function("analyze_content_repetition", |b| {

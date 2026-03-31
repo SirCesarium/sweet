@@ -17,9 +17,29 @@ use memmap2::Mmap;
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::hash::BuildHasher;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str;
 use std::sync::LazyLock;
+
+/// Represents the content of a file, either owned as a String or memory-mapped.
+pub enum FileContent {
+    /// Owned string content, typically for small files.
+    Owned(String),
+    /// Memory-mapped content, typically for large files.
+    Mapped(Mmap),
+}
+
+impl Deref for FileContent {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Owned(s) => s,
+            Self::Mapped(m) => str::from_utf8(m).unwrap_or(""),
+        }
+    }
+}
 
 /// Thread-safe cache for directory-specific configuration resolution.
 static CONFIG_CACHE: LazyLock<DashMap<PathBuf, Config>> = LazyLock::new(DashMap::new);
@@ -30,7 +50,7 @@ pub fn analyze_file(
     path: &Path,
     _base_config: &Config,
     inspect: bool,
-) -> Option<(FileReport, String)> {
+) -> Option<(FileReport, FileContent)> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
 
     let config = if let Some(cached) = CONFIG_CACHE.get(parent) {
@@ -52,11 +72,11 @@ pub fn analyze_file(
     let size = metadata.len();
 
     let content = if size < 16 * 1024 {
-        fs::read_to_string(path).ok()?
+        FileContent::Owned(fs::read_to_string(path).ok()?)
     } else {
         let file = File::open(path).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        str::from_utf8(&mmap).ok()?.to_string()
+        FileContent::Mapped(mmap)
     };
 
     if ignore::is_file_ignored(&content) {
