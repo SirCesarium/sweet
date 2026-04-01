@@ -126,14 +126,21 @@ pub fn analyze_content<S: BuildHasher>(
         scan_res.deep_lines
     };
 
-    let rep_res =
-        repetition::analyze_repetition(&scan_res.clean_content, thresholds.min_duplicate_lines);
+    // Use pre-computed hashes from the single-pass scanner
+    let duplicated_line_count =
+        count_duplicated_lines(&scan_res.hashes, thresholds.min_duplicate_lines);
+    #[allow(clippy::cast_precision_loss)]
+    let repetition_percentage = if scan_res.lines > 0 {
+        (duplicated_line_count as f64 / scan_res.lines as f64) * 100.0
+    } else {
+        0.0
+    };
 
     let metrics = RawMetrics {
         lines: scan_res.lines,
         imports: scan_res.imports,
         max_depth: scan_res.max_depth,
-        repetition: rep_res.percentage,
+        repetition: repetition_percentage,
     };
 
     let issues = collect_issues(&metrics, thresholds, config, disabled_rules);
@@ -142,25 +149,28 @@ pub fn analyze_content<S: BuildHasher>(
     let mut duplicates = Vec::new();
     let window_size = thresholds.min_duplicate_lines;
 
-    if inspect && !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size
+    if inspect && !disabled_rules.contains("max-repetition") && scan_res.hashes.len() >= window_size
     {
-        let chunks = repetition::get_chunks(&rep_res.hashes, window_size);
+        let raw_hashes: Vec<u64> = scan_res.hashes.iter().map(|(_, h)| *h).collect();
+        let chunks = repetition::get_chunks(&raw_hashes, window_size);
         let content_str = str::from_utf8(content).unwrap_or("");
         let content_lines: Vec<&str> = content_str.lines().collect();
 
-        for positions in chunks.values().filter(|v| v.len() > 1) {
-            for &pos in positions {
-                let others: Vec<(PathBuf, usize)> = positions
+        for indices in chunks.values().filter(|v| v.len() > 1) {
+            for &idx in indices {
+                let start_line = scan_res.hashes[idx].0;
+                let others: Vec<(PathBuf, usize)> = indices
                     .iter()
-                    .filter(|&&p| p != pos)
-                    .map(|&p| (path.to_path_buf(), p))
+                    .filter(|&&i| i != idx)
+                    .map(|&i| (path.to_path_buf(), scan_res.hashes[i].0))
                     .collect();
 
-                if pos > 0 && pos + window_size <= content_lines.len() {
-                    let snippet = content_lines[pos - 1..pos - 1 + window_size].join("\n");
+                if start_line > 0 && start_line + window_size <= content_lines.len() {
+                    let snippet =
+                        content_lines[start_line - 1..start_line - 1 + window_size].join("\n");
                     duplicates.push(crate::RepetitionDetail {
                         content: snippet,
-                        line: pos,
+                        line: start_line,
                         occurrences: others,
                     });
                 }
@@ -173,29 +183,56 @@ pub fn analyze_content<S: BuildHasher>(
         lines: scan_res.lines,
         imports: scan_res.imports,
         max_depth: scan_res.max_depth,
-        repetition: rep_res.percentage,
+        repetition: repetition_percentage,
         is_sweet,
         issues,
         config: Some(config.clone()),
         duplicates,
         deep_lines,
-        clean_content: scan_res.clean_content,
+        hashes: scan_res.hashes,
     }
 }
 
+/// Count lines marked as duplicated based on line hashes and window size.
+fn count_duplicated_lines(hashes: &[(usize, u64)], window_size: usize) -> usize {
+    if hashes.len() < window_size {
+        return 0;
+    }
+    let raw_hashes: Vec<u64> = hashes.iter().map(|(_, h)| *h).collect();
+    let chunks = repetition::get_chunks(&raw_hashes, window_size);
+    let mut duplicated_line_numbers = HashSet::new();
+    for indices in chunks.values() {
+        if indices.len() > 1 {
+            for &idx in indices {
+                for i in 0..window_size {
+                    if let Some((line_num, _)) = hashes.get(idx + i) {
+                        duplicated_line_numbers.insert(*line_num);
+                    }
+                }
+            }
+        }
+    }
+    duplicated_line_numbers.len()
+}
+
 /// Raw analysis results before threshold evaluation.
-struct RawMetrics {
-    lines: usize,
-    imports: usize,
-    max_depth: usize,
-    repetition: f64,
+pub struct RawMetrics {
+    /// Measured source lines.
+    pub lines: usize,
+    /// Measured import count.
+    pub imports: usize,
+    /// Measured nesting depth.
+    pub max_depth: usize,
+    /// Measured repetition percentage.
+    pub repetition: f64,
 }
 
 /// Aggregates all rule violations into a list of Issues.
-fn collect_issues<S: BuildHasher>(
+#[must_use]
+pub fn collect_issues<S: BuildHasher>(
     metrics: &RawMetrics,
     thresholds: &crate::Thresholds,
-    config: &Config,
+    config: &crate::Config,
     disabled_rules: &HashSet<String, S>,
 ) -> Vec<crate::Issue> {
     let mut issues = Vec::new();

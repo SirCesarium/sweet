@@ -29,6 +29,9 @@ pub struct Config {
     /// Global and language-specific threshold overrides.
     #[serde(default)]
     pub thresholds: ThresholdsConfig,
+    /// Enable project-wide repetition analysis across different files.
+    #[serde(default)]
+    pub cross_file_repetition: bool,
 }
 
 fn default_excludes() -> Vec<String> {

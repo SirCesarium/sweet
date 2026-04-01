@@ -37,11 +37,12 @@ mod tests {
     fn test_language_specific_defaults() {
         let config = Config::default();
         let t_rs = config.get_thresholds("rs");
-        assert_eq!(t_rs.max_lines, 300);
-        assert_eq!(t_rs.max_imports, 30);
+        // Modern pragmatic defaults
+        assert_eq!(t_rs.max_lines, 400);
+        assert_eq!(t_rs.max_imports, 25);
 
         let t_java = config.get_thresholds("java");
-        assert_eq!(t_java.max_lines, 500);
+        assert_eq!(t_java.max_lines, 400);
     }
 
     #[test]
@@ -54,7 +55,7 @@ mod tests {
 
         let t = config.get_thresholds("java");
         assert_eq!(t.max_imports, 100);
-        assert_eq!(t.max_lines, 500);
+        assert_eq!(t.max_lines, 400);
     }
 
     #[test]

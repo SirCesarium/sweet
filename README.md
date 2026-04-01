@@ -25,7 +25,7 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 *   **Maintain Maintainability:** Identify bloated files and excessive nesting that make code hard to reason about.
 *   **Encourage Decoupling:** Track dependency density to prevent tangled, hard-to-test modules.
 *   **Prevent Logic Bloat:** Detect deep nesting and cognitive complexity before they become technical debt.
-*   **Eliminate Redundancy:** Project-wide inspection to find duplicated logic that should be abstract or shared.
+*   **Eliminate Redundancy:** Project-wide inspection to find duplicated logic across different files.
 
 ## 🍬 Metrics
 
@@ -41,9 +41,10 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 ## 🍬 Features
 
 - **Blazing Fast:** Process thousands of files in seconds (scans the Linux Kernel in ~8.2s).
-- **Zero-Copy Architecture:** Single-pass byte-level scanner for maximum efficiency.
+- **Industrial-Grade Efficiency:** Low RAM footprint via immediate buffer disposal and single-pass analysis.
+- **Zero-Copy Architecture:** Byte-level scanner for maximum CPU cache efficiency.
 - **Hierarchical Config:** Cascading `.swtrc` files for directory-specific rule sets.
-- **Global Inspection:** Project-wide duplicate detection with detailed occurrence mapping.
+- **Global Awareness:** (Optional) Detect duplicated logic across your entire project.
 - **Quality Guard:** Native support for pre-push hooks to block "Bitter" code.
 - **Auto-Update:** Built-in update system to keep your tool always sharp.
 
@@ -82,9 +83,14 @@ swt [path]
 ```
 
 ### Deep Inspection
-Find exact code fragments repeated across different files:
+Find duplicated logic. By default, it checks within files; use `--cross-file` for project-wide analysis.
+
 ```bash
+# Analyze repetition within each file
 swt inspect [path]
+
+# Analyze repetition across the entire project
+swt inspect [path] --cross-file
 ```
 
 ### Strip Comments
@@ -102,17 +108,17 @@ swt update
 
 ### 🔌 Power User Integration
 
-`Sweet` follows the Unix philosophy. It plays perfectly with the standard Rust toolbelt ([`fd`](https://github.com/sharkdp/fd), [`rg`](https://github.com/burntsushi/ripgrep)) to handle massive refactors in seconds.
+`Sweet` follows the Unix philosophy. It plays perfectly with the standard Rust toolbelt ([`fd`](https://github.com/sharkdp/fd), [`rg`](https://github.com/burntsushi/ripgrep)).
 
-**With [`fd` (Fast Find)](https://github.com/sharkdp/fd):**
+**With [`fd`](https://github.com/sharkdp/fd):**
 Strip comments from every Rust file in your project at once.
 
 ```bash
 fd -e rs -x swt uncomment
 ```
 
-**With [`ripgrep` (rg)](https://github.com/burntsushi/ripgrep):**
-Target only the files that contain a specific "Bitter" pattern or AI-generated signature.
+**With [`ripgrep`](https://github.com/burntsushi/ripgrep):**
+Target only the files that contain a specific "Bitter" pattern.
 
 ```bash
 rg "TODO:" -l | xargs swt uncomment
@@ -146,6 +152,7 @@ jobs:
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/SirCesarium/sweet/main/schema.json",
+  "cross_file_repetition": true,
   "thresholds": {
     "global": { 
       "max_lines": 400, 

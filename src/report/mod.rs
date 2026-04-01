@@ -52,9 +52,9 @@ pub struct FileReport {
     pub duplicates: Vec<RepetitionDetail>,
     /// Lines where the nesting depth exceeds the threshold.
     pub deep_lines: Vec<(usize, usize)>,
-    /// Internal: Content without comments for repetition analysis.
+    /// Internal: Pre-computed hashes of lines (without comments) for repetition analysis.
     #[serde(skip)]
-    pub clean_content: Vec<u8>,
+    pub hashes: Vec<(usize, u64)>,
 }
 
 /// Details about a specific duplicated code chunk.

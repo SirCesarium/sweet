@@ -54,6 +54,10 @@ enum Commands {
         /// Path to inspect (default: current directory).
         #[arg(default_value = ".")]
         path: PathBuf,
+
+        /// Enable project-wide repetition analysis across different files.
+        #[arg(long)]
+        cross_file: bool,
     },
     /// Strip comments from a specific file.
     Uncomment {
@@ -84,8 +88,8 @@ fn main() -> ExitCode {
             check_for_updates();
             return ExitCode::SUCCESS;
         }
-        Some(Commands::Inspect { path }) => {
-            return run_analysis(&path, args.json.as_ref(), args.quiet, true);
+        Some(Commands::Inspect { path, cross_file }) => {
+            return run_analysis(&path, args.json.as_ref(), args.quiet, true, cross_file);
         }
         Some(Commands::Uncomment { path, aggressive }) => {
             if handle_uncomment(&path, aggressive) {
@@ -96,7 +100,7 @@ fn main() -> ExitCode {
         None => {}
     }
 
-    run_analysis(&args.path, args.json.as_ref(), args.quiet, false)
+    run_analysis(&args.path, args.json.as_ref(), args.quiet, false, false)
 }
 
 fn run_analysis(
@@ -104,6 +108,7 @@ fn run_analysis(
     #[allow(clippy::option_option)] json: Option<&Option<PathBuf>>,
     quiet: bool,
     inspect: bool,
+    cross_file: bool,
 ) -> ExitCode {
     let config = match Config::load(path) {
         Ok(c) => c,
@@ -120,7 +125,7 @@ fn run_analysis(
         show_branding();
     }
 
-    let reports = engine.run(quiet, json.is_none(), inspect);
+    let reports = engine.run(quiet, json.is_none(), inspect, cross_file);
 
     if reports.is_empty() {
         if !quiet {

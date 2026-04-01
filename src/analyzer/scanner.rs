@@ -1,6 +1,8 @@
 //! High-performance single-pass file analysis scanner.
 
 use crate::languages::{Language, LanguageRegistry};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::str;
 
 /// Type alias for 1-based line numbers.
@@ -8,12 +10,18 @@ pub type LineNumber = usize;
 /// Type alias for byte offsets within a file buffer.
 pub type ByteOffset = usize;
 
+/// Results gathered from a single-pass scan of a source file.
 pub struct ScanResult {
+    /// Total number of source lines.
     pub lines: usize,
+    /// Total number of import/include statements found.
     pub imports: usize,
+    /// Maximum nesting depth based on indentation.
     pub max_depth: usize,
+    /// Line numbers where the nesting depth exceeds a threshold.
     pub deep_lines: Vec<(LineNumber, usize)>,
-    pub clean_content: Vec<u8>,
+    /// Pre-computed hashes of lines that contain actual code.
+    pub hashes: Vec<(LineNumber, u64)>,
 }
 
 struct ScannerState<'a> {
@@ -25,6 +33,7 @@ struct ScannerState<'a> {
     block_end: Option<&'a [u8]>,
 }
 
+/// Perform a single-pass analysis on the provided content.
 #[must_use]
 pub fn scan(
     content: &[u8],
@@ -51,7 +60,7 @@ pub fn scan(
         imports: 0,
         max_depth: 0,
         deep_lines: Vec::new(),
-        clean_content: Vec::with_capacity(content.len()),
+        hashes: Vec::new(),
     };
 
     let (mut flags, mut line_data) = (ParseFlags::default(), LineData::new());
@@ -65,13 +74,12 @@ pub fn scan(
             line_data.reset(i + 1);
             if !flags.in_block_comment {
                 flags.in_line_comment = false;
-                res.clean_content.push(b'\n');
             }
             i += 1;
             continue;
         }
         if flags.in_string {
-            handle_string_content(content, &mut i, &mut flags, &mut res.clean_content);
+            handle_string_content(content, &mut i, &mut flags, &mut line_data.clean_line);
             continue;
         }
         if let Some(end) = state.block_end
@@ -116,11 +124,11 @@ pub fn scan(
         if current == b'\"' || current == b'\'' || current == b'`' {
             flags.in_string = true;
             flags.string_char = current;
-            res.clean_content.push(current);
+            line_data.clean_line.push(current);
             i += 1;
             continue;
         }
-        res.clean_content.push(current);
+        line_data.clean_line.push(current);
         i += 1;
     }
     if !line_data.is_at_start || i > line_data.start_offset {
@@ -143,6 +151,7 @@ struct LineData {
     leading_whitespace: usize,
     start_offset: ByteOffset,
     num: LineNumber,
+    clean_line: Vec<u8>,
 }
 
 impl LineData {
@@ -152,14 +161,16 @@ impl LineData {
             leading_whitespace: 0,
             start_offset: 0,
             num: 1,
+            clean_line: Vec::new(),
         }
     }
 
-    const fn reset(&mut self, next_start: ByteOffset) {
+    fn reset(&mut self, next_start: ByteOffset) {
         self.is_at_start = true;
         self.leading_whitespace = 0;
         self.start_offset = next_start;
         self.num += 1;
+        self.clean_line.clear();
     }
 }
 
@@ -167,12 +178,12 @@ fn handle_string_content(
     content: &[u8],
     i: &mut ByteOffset,
     flags: &mut ParseFlags,
-    clean_content: &mut Vec<u8>,
+    clean_line: &mut Vec<u8>,
 ) {
     let current = content[*i];
-    clean_content.push(current);
+    clean_line.push(current);
     if current == b'\\' && *i + 1 < content.len() {
-        clean_content.push(content[*i + 1]);
+        clean_line.push(content[*i + 1]);
         *i += 2;
     } else {
         if current == flags.string_char {
@@ -211,4 +222,23 @@ fn process_line_end(
             }
         }
     }
+
+    let trimmed = trim_bytes(&line.clean_line);
+    if !trimmed.is_empty() {
+        let mut line_hasher = DefaultHasher::new();
+        trimmed.hash(&mut line_hasher);
+        res.hashes.push((line.num, line_hasher.finish()));
+    }
+}
+
+fn trim_bytes(bytes: &[u8]) -> &[u8] {
+    let start = bytes
+        .iter()
+        .position(|&b| !b.is_ascii_whitespace())
+        .unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .rposition(|&b| !b.is_ascii_whitespace())
+        .map_or(start, |p| p + 1);
+    &bytes[start..end]
 }

@@ -40,13 +40,26 @@ The extension provides live structural diagnostics through **VS Code Warnings** 
 1. **File Bloat:** Total line count exceeds thresholds.
 3. **Logical Depth:** Deeply nested control flow (cognitive complexity).
 4. **Tangled Coupling:** Excessive import/dependency statements.
-5. **Local Repetition:** Duplicated logic within the same file.
+5. **Logic Duplication:** Repeated code blocks (local or project-wide).
 
 ---
 
 ## ⚙️ Configuration
 
 `Sweet` automatically detects `.swtrc` files in your workspace. If absent, it applies intelligent defaults tuned for each supported language (Rust, Python, GDScript, Lua, etc.).
+
+To enable **Project-Wide Duplication Analysis**, add this to your `.swtrc`:
+
+```json
+{
+  "cross_file_repetition": true,
+  "thresholds": {
+    "global": {
+      "max_repetition": 25
+    }
+  }
+}
+```
 
 You can customize the importance of each rule in your `.swtrc`:
 

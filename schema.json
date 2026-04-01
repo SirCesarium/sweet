@@ -12,6 +12,11 @@
       ],
       "writeOnly": true
     },
+    "cross_file_repetition": {
+      "description": "Enable project-wide repetition analysis across different files.",
+      "type": "boolean",
+      "default": false
+    },
     "exclude": {
       "description": "Glob patterns for files/directories to exclude.",
       "type": "array",

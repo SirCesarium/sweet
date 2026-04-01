@@ -1,3 +1,4 @@
+// @swt-disable max-repetition
 use crate::define_language;
 
 define_language!(

@@ -1,43 +1,43 @@
 //! High-level analysis orchestration and parallel file processing.
 
-use crate::analyzer::FileContent;
-use crate::analyzer::repetition;
+use crate::analyzer::{RawMetrics, collect_issues, repetition};
 use crate::{Config, FileReport, RepetitionDetail};
 use dashmap::DashMap;
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::str;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-/// Type alias for mapping code chunk hashes to their project-wide occurrences.
 type ChunkMap = DashMap<u64, Vec<(PathBuf, usize)>>;
-/// Type alias for a list of duplicated chunk hashes and their occurrences.
 type Duplicates = Vec<(u64, Vec<(PathBuf, usize)>)>;
 
-/// The `AnalysisEngine` orchestrates the collection and parallel analysis of project files.
 pub struct AnalysisEngine {
     root: PathBuf,
     config: Config,
 }
 
-/// Internal structure to hold report and original file content.
-struct ProcessedFile {
-    report: FileReport,
-    content: FileContent,
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Default, Clone, Copy)]
+struct RunOptions {
+    quiet: bool,
+    show_progress: bool,
+    inspect: bool,
+    cross_file: bool,
 }
 
 impl AnalysisEngine {
-    /// Create a new engine instance for the given root path.
     #[must_use]
     pub const fn new(root: PathBuf, config: Config) -> Self {
         Self { root, config }
     }
 
-    /// Discover and filter all supported files in the project root.
     #[must_use]
     pub fn collect_files(&self, quiet: bool) -> Vec<PathBuf> {
         let spinner = if quiet {
@@ -79,25 +79,39 @@ impl AnalysisEngine {
         entries
     }
 
-    /// Execute the analysis phase and performs global repetition inspection if requested.
+    #[allow(clippy::fn_params_excessive_bools)]
     #[must_use]
-    pub fn run(&self, quiet: bool, show_progress: bool, inspect: bool) -> Vec<FileReport> {
+    pub fn run(
+        &self,
+        quiet: bool,
+        show_progress: bool,
+        inspect: bool,
+        cross_file: bool,
+    ) -> Vec<FileReport> {
         let entries = self.collect_files(quiet);
         if entries.is_empty() {
             return Vec::new();
         }
 
-        let pb = Self::create_progress_bar(entries.len(), quiet, show_progress);
-        let global_chunks: Arc<ChunkMap> = Arc::new(DashMap::new());
+        let options = RunOptions {
+            quiet,
+            show_progress,
+            inspect,
+            cross_file,
+        };
 
-        let mut processed_files: Vec<ProcessedFile> = entries
+        let pb = Self::create_progress_bar(entries.len(), options.quiet, options.show_progress);
+        let global_chunks: Arc<ChunkMap> = Arc::new(DashMap::new());
+        let use_global = options.cross_file || self.config.cross_file_repetition;
+
+        let mut reports: Vec<FileReport> = entries
             .par_iter()
             .filter_map(|path| {
-                let res = self.analyze_and_collect(path, &global_chunks, inspect);
+                let res = self.analyze_and_collect(path, &global_chunks, options, use_global);
                 if let Some(ref pb) = pb {
                     pb.inc(1);
                     if let Some(ref r) = res {
-                        pb.set_message(format!("{}", r.report.path.display()));
+                        pb.set_message(r.path.to_string_lossy().to_string());
                     }
                 }
                 res
@@ -108,99 +122,183 @@ impl AnalysisEngine {
             pb.finish_and_clear();
         }
 
-        if inspect {
-            Self::finalize_inspection(&mut processed_files, &global_chunks);
+        if use_global {
+            Self::finalize_global_analysis(&mut reports, &global_chunks);
+        } else if options.inspect {
+            Self::finalize_local_inspection(&mut reports);
         }
-
-        let mut reports: Vec<FileReport> =
-            processed_files.into_iter().map(|pf| pf.report).collect();
 
         Self::sort_reports(&mut reports);
         reports
     }
 
-    /// Analyze a file and optionally collect chunk hashes for global duplication detection.
     fn analyze_and_collect(
         &self,
         path: &Path,
         global_chunks: &ChunkMap,
-        inspect: bool,
-    ) -> Option<ProcessedFile> {
-        let (report, content) = super::analyze_file(path, &self.config, inspect)?;
+        options: RunOptions,
+        use_global: bool,
+    ) -> Option<FileReport> {
+        let (report, content) = super::analyze_file(path, &self.config, options.inspect)?;
 
-        if inspect {
+        if use_global {
             let extension = path.extension()?.to_str()?;
             let thresholds = self.config.get_thresholds(extension);
-            let disabled_rules = super::ignore::get_disabled_rules(&content);
-
-            let rep_res = repetition::analyze_repetition(
-                &report.clean_content,
-                thresholds.min_duplicate_lines,
-            );
-
             let window_size = thresholds.min_duplicate_lines;
-            if !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size {
-                let chunks = repetition::get_chunks(&rep_res.hashes, window_size);
-                for (chunk, positions) in chunks {
-                    for pos in positions {
+
+            if report.hashes.len() >= window_size {
+                let raw_hashes: Vec<u64> = report.hashes.iter().map(|(_, h)| *h).collect();
+                let chunks = repetition::get_chunks(&raw_hashes, window_size);
+                for (chunk, indices) in chunks {
+                    for idx in indices {
+                        let original_line = report.hashes[idx].0;
                         global_chunks
                             .entry(chunk)
                             .or_default()
-                            .push((path.to_path_buf(), pos));
+                            .push((path.to_path_buf(), original_line));
                     }
                 }
             }
         }
 
-        Some(ProcessedFile { report, content })
+        drop(content);
+        Some(report)
     }
 
-    /// Finalize the inspection by mapping duplicated chunks back to source files.
-    fn finalize_inspection(processed_files: &mut [ProcessedFile], global_chunks: &ChunkMap) {
-        let duplicates: Duplicates = global_chunks
-            .iter()
-            .filter(|entry| entry.value().len() > 1)
-            .map(|entry| (*entry.key(), entry.value().clone()))
-            .collect();
+    fn finalize_global_analysis(reports: &mut [FileReport], global_chunks: &ChunkMap) {
+        let mut file_to_duplicated_lines: HashMap<PathBuf, HashSet<usize>> = HashMap::new();
+        let mut global_duplicates: Duplicates = Vec::new();
 
-        for pf in processed_files {
-            let content_str = str::from_utf8(&pf.content).unwrap_or("");
-            let file_lines: Vec<&str> = content_str.lines().collect();
+        for entry in global_chunks {
+            let (hash, occurrences) = entry.pair();
+            if occurrences.len() > 1 {
+                global_duplicates.push((*hash, occurrences.clone()));
 
-            for (_, occurrences) in &duplicates {
-                let mut local_positions: Vec<usize> = occurrences
-                    .iter()
-                    .filter(|(path, _)| path == &pf.report.path)
-                    .map(|(_, line)| *line)
-                    .collect();
+                for (path, line) in occurrences {
+                    file_to_duplicated_lines
+                        .entry(path.clone())
+                        .or_default()
+                        .insert(*line);
+                }
+            }
+        }
 
-                local_positions.sort_unstable();
-                local_positions.dedup();
+        for report in reports {
+            let path = &report.path;
+            let config = report.config.clone().unwrap_or_default();
+            let extension = path.extension().and_then(OsStr::to_str).unwrap_or("");
+            let thresholds = config.get_thresholds(extension);
+            let window_size = thresholds.min_duplicate_lines;
 
-                if local_positions.is_empty() {
-                    continue;
+            if let Some(duplicated_start_lines) = file_to_duplicated_lines.get(path) {
+                let mut total_duplicated_indices = HashSet::new();
+                for &start in duplicated_start_lines {
+                    for i in 0..window_size {
+                        total_duplicated_indices.insert(start + i);
+                    }
                 }
 
-                for &start_line in &local_positions {
-                    if pf.report.duplicates.iter().any(|d| d.line == start_line) {
-                        continue;
+                if report.lines > 0 {
+                    #[allow(clippy::cast_precision_loss)]
+                    let new_percentage =
+                        (total_duplicated_indices.len() as f64 / report.lines as f64) * 100.0;
+                    report.repetition = new_percentage.min(100.0);
+                }
+            }
+
+            let disabled_rules = fs::read(path).map_or_else(
+                |_| HashSet::new(),
+                |content| super::ignore::get_disabled_rules(&content),
+            );
+
+            let metrics = RawMetrics {
+                lines: report.lines,
+                imports: report.imports,
+                max_depth: report.max_depth,
+                repetition: report.repetition,
+            };
+
+            report.issues = collect_issues(&metrics, &thresholds, &config, &disabled_rules);
+            report.is_sweet = report
+                .issues
+                .iter()
+                .all(|i| i.severity != crate::Severity::Error);
+
+            if !global_duplicates.is_empty()
+                && let Ok(content) = fs::read_to_string(path)
+            {
+                let file_lines: Vec<&str> = content.lines().collect();
+
+                for (_, occurrences) in &global_duplicates {
+                    let local_pos: Vec<usize> = occurrences
+                        .iter()
+                        .filter(|(p, _)| p == path)
+                        .map(|(_, l)| *l)
+                        .collect();
+
+                    for &start_line in &local_pos {
+                        if report.duplicates.iter().any(|d| d.line == start_line) {
+                            continue;
+                        }
+
+                        if start_line > 0 && start_line + window_size <= file_lines.len() {
+                            let snippet =
+                                file_lines[start_line - 1..start_line - 1 + window_size].join("\n");
+                            let others: Vec<_> = occurrences
+                                .iter()
+                                .filter(|(p, l)| p != path || *l != start_line)
+                                .cloned()
+                                .collect();
+
+                            if !others.is_empty() {
+                                report.duplicates.push(RepetitionDetail {
+                                    content: snippet,
+                                    line: start_line,
+                                    occurrences: others,
+                                });
+                            }
+                        }
                     }
+                }
+            }
+        }
+    }
 
-                    if start_line > 0 && start_line + 3 <= file_lines.len() {
-                        let snippet = file_lines[start_line - 1..start_line + 3].join("\n");
+    fn finalize_local_inspection(reports: &mut [FileReport]) {
+        for report in reports {
+            if report.duplicates.is_empty() && !report.hashes.is_empty() {
+                let window_size = report.config.as_ref().map_or(6, |c| {
+                    let ext = report
+                        .path
+                        .extension()
+                        .and_then(OsStr::to_str)
+                        .unwrap_or("");
+                    c.get_thresholds(ext).min_duplicate_lines
+                });
 
-                        let others: Vec<(PathBuf, usize)> = occurrences
-                            .iter()
-                            .filter(|(p, l)| p != &pf.report.path || *l != start_line)
-                            .cloned()
-                            .collect();
+                let raw_hashes: Vec<u64> = report.hashes.iter().map(|(_, h)| *h).collect();
+                let chunks = repetition::get_chunks(&raw_hashes, window_size);
+                if let Ok(content) = fs::read_to_string(&report.path) {
+                    let file_lines: Vec<&str> = content.lines().collect();
+                    for indices in chunks.values().filter(|v| v.len() > 1) {
+                        for &idx in indices {
+                            let start_line = report.hashes[idx].0;
+                            if start_line > 0 && start_line + window_size <= file_lines.len() {
+                                let snippet = file_lines
+                                    [start_line - 1..start_line - 1 + window_size]
+                                    .join("\n");
+                                let others: Vec<_> = indices
+                                    .iter()
+                                    .filter(|&&i| i != idx)
+                                    .map(|&i| (report.path.clone(), report.hashes[i].0))
+                                    .collect();
 
-                        if !others.is_empty() {
-                            pf.report.duplicates.push(RepetitionDetail {
-                                content: snippet,
-                                line: start_line,
-                                occurrences: others,
-                            });
+                                report.duplicates.push(RepetitionDetail {
+                                    content: snippet,
+                                    line: start_line,
+                                    occurrences: others,
+                                });
+                            }
                         }
                     }
                 }
