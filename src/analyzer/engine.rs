@@ -2,21 +2,21 @@
 
 use crate::analyzer::FileContent;
 use crate::analyzer::repetition;
-use crate::uncomment::remove_comments;
 use crate::{Config, FileReport, RepetitionDetail};
 use dashmap::DashMap;
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
+use std::str;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-/// Type alias for mapping code chunks to their project-wide occurrences.
-type ChunkMap = DashMap<Vec<u64>, Vec<(PathBuf, usize)>>;
-/// Type alias for a list of duplicated chunks and their occurrences.
-type Duplicates = Vec<(Vec<u64>, Vec<(PathBuf, usize)>)>;
+/// Type alias for mapping code chunk hashes to their project-wide occurrences.
+type ChunkMap = DashMap<u64, Vec<(PathBuf, usize)>>;
+/// Type alias for a list of duplicated chunk hashes and their occurrences.
+type Duplicates = Vec<(u64, Vec<(PathBuf, usize)>)>;
 
 /// The `AnalysisEngine` orchestrates the collection and parallel analysis of project files.
 pub struct AnalysisEngine {
@@ -31,11 +31,13 @@ struct ProcessedFile {
 }
 
 impl AnalysisEngine {
+    /// Create a new engine instance for the given root path.
     #[must_use]
     pub const fn new(root: PathBuf, config: Config) -> Self {
         Self { root, config }
     }
 
+    /// Discover and filter all supported files in the project root.
     #[must_use]
     pub fn collect_files(&self, quiet: bool) -> Vec<PathBuf> {
         let spinner = if quiet {
@@ -77,7 +79,7 @@ impl AnalysisEngine {
         entries
     }
 
-    /// Executes the analysis phase and performs global repetition inspection if requested.
+    /// Execute the analysis phase and performs global repetition inspection if requested.
     #[must_use]
     pub fn run(&self, quiet: bool, show_progress: bool, inspect: bool) -> Vec<FileReport> {
         let entries = self.collect_files(quiet);
@@ -117,7 +119,7 @@ impl AnalysisEngine {
         reports
     }
 
-    /// Analyze a file and optionally collects chunk hashes for global duplication detection.
+    /// Analyze a file and optionally collect chunk hashes for global duplication detection.
     fn analyze_and_collect(
         &self,
         path: &Path,
@@ -130,8 +132,11 @@ impl AnalysisEngine {
             let extension = path.extension()?.to_str()?;
             let thresholds = self.config.get_thresholds(extension);
             let disabled_rules = super::ignore::get_disabled_rules(&content);
-            let clean = remove_comments(&content, extension, true);
-            let rep_res = repetition::analyze_repetition(&clean, thresholds.min_duplicate_lines);
+
+            let rep_res = repetition::analyze_repetition(
+                &report.clean_content,
+                thresholds.min_duplicate_lines,
+            );
 
             let window_size = thresholds.min_duplicate_lines;
             if !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size {
@@ -139,7 +144,7 @@ impl AnalysisEngine {
                 for (chunk, positions) in chunks {
                     for pos in positions {
                         global_chunks
-                            .entry(chunk.clone())
+                            .entry(chunk)
                             .or_default()
                             .push((path.to_path_buf(), pos));
                     }
@@ -150,16 +155,18 @@ impl AnalysisEngine {
         Some(ProcessedFile { report, content })
     }
 
-    /// Finalizes the inspection by mapping duplicated chunks back to source files.
+    /// Finalize the inspection by mapping duplicated chunks back to source files.
     fn finalize_inspection(processed_files: &mut [ProcessedFile], global_chunks: &ChunkMap) {
         let duplicates: Duplicates = global_chunks
             .iter()
             .filter(|entry| entry.value().len() > 1)
-            .map(|entry| (entry.key().clone(), entry.value().clone()))
+            .map(|entry| (*entry.key(), entry.value().clone()))
             .collect();
 
         for pf in processed_files {
-            let file_lines: Vec<&str> = pf.content.lines().collect();
+            let content_str = str::from_utf8(&pf.content).unwrap_or("");
+            let file_lines: Vec<&str> = content_str.lines().collect();
+
             for (_, occurrences) in &duplicates {
                 let mut local_positions: Vec<usize> = occurrences
                     .iter()

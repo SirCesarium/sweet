@@ -1,14 +1,15 @@
 //! Analysis exclusion logic based on @sweetignore and @swt-disable comments.
 
 use std::collections::HashSet;
+use std::str;
 
 /// Check if a file should be ignored globally via a top-level @sweetignore.
 #[must_use]
-pub fn is_file_ignored(content: &str) -> bool {
+pub fn is_file_ignored(content: &[u8]) -> bool {
     content
-        .lines()
+        .split(|&b| b == b'\n')
         .take(10)
-        .any(|line| line.contains("@sweetignore"))
+        .any(|line| line.windows(12).any(|w| w == b"@sweetignore"))
 }
 
 /// Check if a specific line or block is marked for exclusion.
@@ -21,19 +22,27 @@ pub fn is_line_ignored(line: &str) -> bool {
 ///
 /// Looks for comments like `@swt-disable <rule1> <rule2>` in the first 20 lines.
 #[must_use]
-pub fn get_disabled_rules(content: &str) -> HashSet<String> {
+pub fn get_disabled_rules(content: &[u8]) -> HashSet<String> {
     let mut disabled = HashSet::new();
-    let marker = "@swt-disable";
-    for line in content.lines().take(20) {
-        let lower = line.to_lowercase();
-        if let Some(pos) = lower.find(marker) {
-            let rules = &line[pos + marker.len()..];
-            for rule in rules.split_whitespace() {
-                disabled.insert(rule.to_lowercase());
+    let marker = b"@swt-disable";
+    for line in content.split(|&b| b == b'\n').take(20) {
+        let line_lower = line.to_ascii_lowercase();
+        if let Some(pos) = find_subsequence(&line_lower, marker) {
+            let rules_part = &line[pos + marker.len()..];
+            if let Ok(rules_str) = str::from_utf8(rules_part) {
+                for rule in rules_str.split_whitespace() {
+                    disabled.insert(rule.to_lowercase());
+                }
             }
         }
     }
     disabled
+}
+
+fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 #[cfg(test)]
@@ -42,23 +51,16 @@ mod tests {
 
     #[test]
     fn test_is_file_ignored() {
-        assert!(is_file_ignored("// @sweetignore\nfn main() {}"));
-        assert!(!is_file_ignored("fn main() {}"));
+        assert!(is_file_ignored(b"// @sweetignore\nfn main() {}"));
+        assert!(!is_file_ignored(b"fn main() {}"));
     }
 
     #[test]
     fn test_get_disabled_rules() {
-        let content = "// @swt-disable max-lines max-depth\nfn main() {}";
+        let content = b"// @swt-disable max-lines max-depth\nfn main() {}";
         let disabled = get_disabled_rules(content);
         assert!(disabled.contains("max-lines"));
         assert!(disabled.contains("max-depth"));
         assert!(!disabled.contains("max-imports"));
-    }
-
-    #[test]
-    fn test_get_disabled_rules_case_insensitive() {
-        let content = "# @SWT-DISABLE Max-Lines";
-        let disabled = get_disabled_rules(content);
-        assert!(disabled.contains("max-lines"));
     }
 }

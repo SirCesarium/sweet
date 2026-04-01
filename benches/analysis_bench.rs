@@ -19,7 +19,7 @@ fn bench_standard_analysis(c: &mut Criterion) {
     c.bench_function("analyze_content_standard", |b| {
         b.iter(|| {
             analyze_content(
-                black_box(&content),
+                black_box(content.as_bytes()),
                 black_box(extension),
                 black_box(&thresholds),
                 black_box(&path),
@@ -44,7 +44,7 @@ fn bench_repetition_heavy(c: &mut Criterion) {
     c.bench_function("analyze_content_repetition", |b| {
         b.iter(|| {
             analyze_content(
-                black_box(&content),
+                black_box(content.as_bytes()),
                 black_box(extension),
                 black_box(&thresholds),
                 black_box(&path),

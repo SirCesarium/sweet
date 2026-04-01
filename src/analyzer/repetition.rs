@@ -14,7 +14,7 @@ pub struct RepetitionResult {
 
 /// Analyze content for repeated lines and returns a summary.
 #[must_use]
-pub fn analyze_repetition(content: &str, window_size: usize) -> RepetitionResult {
+pub fn analyze_repetition(content: &[u8], window_size: usize) -> RepetitionResult {
     if content.is_empty() || window_size == 0 {
         return RepetitionResult {
             percentage: 0.0,
@@ -22,20 +22,21 @@ pub fn analyze_repetition(content: &str, window_size: usize) -> RepetitionResult
         };
     }
 
-    let lines: Vec<&str> = content.lines().collect();
+    let mut hashes = Vec::new();
+    let mut line_count = 0;
 
-    if lines.len() < window_size {
-        return RepetitionResult {
-            percentage: 0.0,
-            hashes: Vec::new(),
-        };
+    for line in content.split(|&b| b == b'\n') {
+        line_count += 1;
+        let mut line_hasher = DefaultHasher::new();
+        trim_bytes(line).hash(&mut line_hasher);
+        hashes.push(line_hasher.finish());
     }
 
-    let mut hashes = Vec::with_capacity(lines.len());
-    for line in &lines {
-        let mut h = DefaultHasher::new();
-        line.trim().hash(&mut h);
-        hashes.push(h.finish());
+    if line_count < window_size {
+        return RepetitionResult {
+            percentage: 0.0,
+            hashes,
+        };
     }
 
     let chunks = get_chunks(&hashes, window_size);
@@ -52,23 +53,36 @@ pub fn analyze_repetition(content: &str, window_size: usize) -> RepetitionResult
     }
 
     #[allow(clippy::cast_precision_loss)]
-    let percentage = (duplicated_lines.len() as f64 / lines.len() as f64) * 100.0;
+    let percentage = (duplicated_lines.len() as f64 / line_count as f64) * 100.0;
 
     RepetitionResult { percentage, hashes }
 }
 
-/// Breaks a list of hashes into windows and maps each chunk to its positions.
+fn trim_bytes(bytes: &[u8]) -> &[u8] {
+    let start = bytes
+        .iter()
+        .position(|&b| !b.is_ascii_whitespace())
+        .unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .rposition(|&b| !b.is_ascii_whitespace())
+        .map_or(start, |p| p + 1);
+    &bytes[start..end]
+}
+
+/// Breaks a list of hashes into windows and maps each chunk (via its hash) to its positions.
 #[must_use]
-pub fn get_chunks(hashes: &[u64], window_size: usize) -> HashMap<Vec<u64>, Vec<usize>> {
+pub fn get_chunks(hashes: &[u64], window_size: usize) -> HashMap<u64, Vec<usize>> {
     if hashes.len() < window_size {
         return HashMap::new();
     }
 
-    let mut chunks: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
+    let mut chunks: HashMap<u64, Vec<usize>> = HashMap::new();
 
     for i in 0..=hashes.len() - window_size {
-        let chunk = hashes[i..i + window_size].to_vec();
-        chunks.entry(chunk).or_default().push(i + 1);
+        let mut chunk_hasher = DefaultHasher::new();
+        hashes[i..i + window_size].hash(&mut chunk_hasher);
+        chunks.entry(chunk_hasher.finish()).or_default().push(i + 1);
     }
 
     chunks
@@ -80,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_repetition() {
-        let content = "a\nb\nc\na\nb\nc\nd";
+        let content = b"a\nb\nc\na\nb\nc\nd";
         let res = analyze_repetition(content, 3);
         assert!(res.percentage > 0.0);
         assert_eq!(res.hashes.len(), 7);

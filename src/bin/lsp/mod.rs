@@ -73,10 +73,10 @@ impl Backend {
 
         let extension = path.extension()?.to_str()?;
         let thresholds = config.get_thresholds(extension);
-        let disabled_rules = get_disabled_rules(&content);
+        let disabled_rules = get_disabled_rules(content.as_bytes());
 
         Some(analyze_content(
-            &content,
+            content.as_bytes(),
             extension,
             &thresholds,
             &path,
@@ -161,10 +161,9 @@ impl LanguageServer for Backend {
                 .and_then(|e| e.to_str())
                 .unwrap_or_default();
             let thresholds = config.get_thresholds(extension);
-            let disabled_rules = get_disabled_rules(&content);
-
+            let disabled_rules = get_disabled_rules(content.as_bytes());
             let report = analyze_content(
-                &content,
+                content.as_bytes(),
                 extension,
                 &thresholds,
                 &path,

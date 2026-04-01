@@ -40,10 +40,10 @@ Most linters focus on syntax; `Sweet` focuses on **maintainability**. It acts as
 
 ## 🍬 Features
 
-- **Blazing Fast:** Process thousands of files in milliseconds (self-analysis in <10ms).
+- **Blazing Fast:** Process thousands of files in seconds (scans the Linux Kernel in ~8.2s).
+- **Zero-Copy Architecture:** Single-pass byte-level scanner for maximum efficiency.
 - **Hierarchical Config:** Cascading `.swtrc` files for directory-specific rule sets.
 - **Global Inspection:** Project-wide duplicate detection with detailed occurrence mapping.
-- **Intelligent Defaults:** Language-specific thresholds tuned for different ecosystems.
 - **Quality Guard:** Native support for pre-push hooks to block "Bitter" code.
 - **Auto-Update:** Built-in update system to keep your tool always sharp.
 
@@ -173,19 +173,18 @@ To ignore a file entirely, use `@sweetignore`.
 
 ### ⚡ Benches
 
-To demonstrate Sweet's deep architectural analysis capabilities and superior performance, we benchmarked it against established tools on the entire Linux Kernel source tree (~93k files, 8.0 GB):
+To demonstrate Sweet's performance, we benchmarked it against established tools on the entire Linux Kernel source tree (~64k files, 8.0 GB):
 
 | Tool       | Language | Primary Focus                    | Time (Linux Kernel) | Analysis Depth                                                 | Speed vs Sweet |
 | :--------- | :------- | :------------------------------- | :------------------ | :------------------------------------------------------------- | :------------- |
-| **Sweet (swt)** | **Rust** | **Arch. Health & Duplication** | **~31.5s**          | **Lines, Imports, Nesting, Duplication, Thresholds**           | **N/A (Winner)** |
-| **Tokei**  | Rust     | Line Count                       | ~2.1s               | Lines, Comments, Blanks                                        | (N/A - simpler) |
-| **cloc**   | Perl     | Line Count (Industry Standard)   | **~150s**           | Lines, Comments, Blanks, Language Breakdown                    | **4.7x slower** |
-| **Lizard** | Python   | Cyclomatic Complexity            | **~456s**           | Nesting Depth, Function Count                                  | **14.3x slower** |
+| **Sweet (swt)** | **Rust** | **Arch. Health & Duplication** | **~8.2s**           | **Lines, Imports, Nesting, Duplication, Thresholds**           | **N/A** |
+| **Tokei**  | Rust     | Raw Line Counting                | **~2.1s**           | Lines, Comments, Blanks                                        | **3.9x faster** |
+| **cloc**   | Perl     | Line Count (Industry Standard)   | **~150s**           | Lines, Comments, Blanks, Language Breakdown                    | **18.3x slower** |
+| **Lizard** | Python   | Cyclomatic Complexity            | **~456s**           | Nesting Depth, Function Count                                  | **55.6x slower** |
 
 **Key Takeaways:**
-- Sweet provides **deep architectural insights** (nesting depth, import density, project-wide duplication) while remaining remarkably fast.
-- Compared to traditional tools like `cloc` and `lizard`, Sweet performs **significantly more analysis** with superior performance, offering **10x+ speedups** in complex tasks.
-- This demonstrates Sweet's **industrial-grade engine**, capable of handling massive codebases with unparalleled efficiency.
+- Sweet provides **high-fidelity architectural insights** (nesting depth, import density, project-wide duplication) at speeds approaching raw data counters.
+- The engine is designed to handle massive codebases in seconds, making it suitable for real-time quality gates in large-scale industrial environments.
 
 ## 🤝 Contributing
 

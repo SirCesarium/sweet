@@ -4,13 +4,13 @@ pub mod complexity;
 pub mod engine;
 pub mod ignore;
 pub mod repetition;
+pub mod scanner;
 pub mod syntax;
 pub mod volume;
 
 pub use engine::AnalysisEngine;
 
 use crate::languages::{Language, LanguageRegistry};
-use crate::uncomment::remove_comments;
 use crate::{Config, FileReport};
 use dashmap::DashMap;
 use memmap2::Mmap;
@@ -31,12 +31,12 @@ pub enum FileContent {
 }
 
 impl Deref for FileContent {
-    type Target = str;
+    type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Owned(s) => s,
-            Self::Mapped(m) => str::from_utf8(m).unwrap_or(""),
+            Self::Owned(s) => s.as_bytes(),
+            Self::Mapped(m) => m,
         }
     }
 }
@@ -100,7 +100,7 @@ pub fn analyze_file(
 /// Dispatches content to specialized analyzers and aggregates results.
 #[must_use]
 pub fn analyze_content<S: BuildHasher>(
-    content: &str,
+    content: &[u8],
     extension: &str,
     thresholds: &crate::Thresholds,
     path: &Path,
@@ -113,23 +113,21 @@ pub fn analyze_content<S: BuildHasher>(
         .get_by_extension(extension)
         .map_or(4, Language::indent_size);
 
-    let lines = volume::count_lines(content);
-    let imports = syntax::count_imports(content, extension);
-    let max_depth = complexity::analyze_depth(content, indent_size);
+    let scan_res = scanner::scan(content, extension, thresholds.max_depth, indent_size);
 
     let deep_lines = if disabled_rules.contains("max-depth") {
         Vec::new()
     } else {
-        complexity::find_deep_lines(content, indent_size, thresholds.max_depth)
+        scan_res.deep_lines
     };
 
-    let clean_content = remove_comments(content, extension, true);
-    let rep_res = repetition::analyze_repetition(&clean_content, thresholds.min_duplicate_lines);
+    let rep_res =
+        repetition::analyze_repetition(&scan_res.clean_content, thresholds.min_duplicate_lines);
 
     let metrics = RawMetrics {
-        lines,
-        imports,
-        max_depth,
+        lines: scan_res.lines,
+        imports: scan_res.imports,
+        max_depth: scan_res.max_depth,
         repetition: rep_res.percentage,
     };
 
@@ -142,7 +140,8 @@ pub fn analyze_content<S: BuildHasher>(
     if inspect && !disabled_rules.contains("max-repetition") && rep_res.hashes.len() >= window_size
     {
         let chunks = repetition::get_chunks(&rep_res.hashes, window_size);
-        let content_lines: Vec<&str> = content.lines().collect();
+        let content_str = str::from_utf8(content).unwrap_or("");
+        let content_lines: Vec<&str> = content_str.lines().collect();
 
         for positions in chunks.values().filter(|v| v.len() > 1) {
             for &pos in positions {
@@ -166,15 +165,16 @@ pub fn analyze_content<S: BuildHasher>(
 
     FileReport {
         path: path.to_path_buf(),
-        lines,
-        imports,
-        max_depth,
+        lines: scan_res.lines,
+        imports: scan_res.imports,
+        max_depth: scan_res.max_depth,
         repetition: rep_res.percentage,
         is_sweet,
         issues,
         config: Some(config.clone()),
         duplicates,
         deep_lines,
+        clean_content: scan_res.clean_content,
     }
 }
 

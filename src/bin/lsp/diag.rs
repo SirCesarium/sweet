@@ -11,53 +11,73 @@ pub fn generate(report: &FileReport, config: &Config) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
 
     for issue in &report.issues {
-        let rule = if issue.message.contains("File too long") {
-            "max-lines"
-        } else if issue.message.contains("Too many imports") {
-            "max-imports"
-        } else if issue.message.contains("Excessive nesting") {
-            "max-depth"
-        } else if issue.message.contains("repetition") {
-            "max-repetition"
-        } else {
-            "unknown"
-        };
+        let rule = match_rule(&issue.message);
+        let severity = to_lsp_severity(config.thresholds.severities.get(rule));
 
-        let severity = match config.thresholds.severities.get(rule) {
-            Severity::Error => DiagnosticSeverity::ERROR,
-            Severity::Warning => DiagnosticSeverity::WARNING,
-        };
-
-        diagnostics.push(Diagnostic {
-            range: Range::new(Position::new(0, 0), Position::new(0, 80)),
-            severity: Some(severity),
-            message: format!("🍬 Sweet: {}", issue.message),
-            source: Some("sweet".to_string()),
-            data: Some(to_value(rule).unwrap_or_default()),
-            ..Default::default()
-        });
+        diagnostics.push(create_diagnostic(
+            Range::new(Position::new(0, 0), Position::new(0, 80)),
+            severity,
+            format!("🍬 Sweet: {}", issue.message),
+            rule,
+            None,
+        ));
     }
 
     for (line, depth) in &report.deep_lines {
         #[allow(clippy::cast_possible_truncation)]
         let l = (*line as u32).saturating_sub(1);
-        let severity = match config.thresholds.severities.get("max-depth") {
-            Severity::Error => DiagnosticSeverity::ERROR,
-            Severity::Warning => DiagnosticSeverity::WARNING,
-        };
+        let severity = to_lsp_severity(config.thresholds.severities.get("max-depth"));
 
-        diagnostics.push(Diagnostic {
-            range: Range::new(Position::new(l, 0), Position::new(l, 80)),
-            severity: Some(severity),
-            message: format!("🍬 Sweet: Excessive nesting depth: {depth}"),
-            source: Some("sweet".to_string()),
-            data: Some(to_value("max-depth").unwrap_or_default()),
-            ..Default::default()
-        });
+        diagnostics.push(create_diagnostic(
+            Range::new(Position::new(l, 0), Position::new(l, 80)),
+            severity,
+            format!("🍬 Sweet: Excessive nesting depth: {depth}"),
+            "max-depth",
+            None,
+        ));
     }
 
     report_duplicates(report, config, &mut diagnostics);
     diagnostics
+}
+
+fn match_rule(message: &str) -> &'static str {
+    if message.contains("File too long") {
+        "max-lines"
+    } else if message.contains("Too many imports") {
+        "max-imports"
+    } else if message.contains("Excessive nesting") {
+        "max-depth"
+    } else if message.contains("repetition") {
+        "max-repetition"
+    } else {
+        "unknown"
+    }
+}
+
+const fn to_lsp_severity(severity: Severity) -> DiagnosticSeverity {
+    match severity {
+        Severity::Error => DiagnosticSeverity::ERROR,
+        Severity::Warning => DiagnosticSeverity::WARNING,
+    }
+}
+
+fn create_diagnostic(
+    range: Range,
+    severity: DiagnosticSeverity,
+    message: String,
+    rule: &str,
+    related: Option<Vec<DiagnosticRelatedInformation>>,
+) -> Diagnostic {
+    Diagnostic {
+        range,
+        severity: Some(severity),
+        message,
+        source: Some("sweet".to_string()),
+        related_information: related,
+        data: Some(to_value(rule).unwrap_or_default()),
+        ..Default::default()
+    }
 }
 
 /// Append duplication diagnostics to the list.
@@ -84,22 +104,17 @@ fn report_duplicates(report: &FileReport, config: &Config, diagnostics: &mut Vec
             }
         }
 
-        let severity = match config.thresholds.severities.get("max-repetition") {
-            Severity::Error => DiagnosticSeverity::ERROR,
-            Severity::Warning => DiagnosticSeverity::WARNING,
-        };
+        let severity = to_lsp_severity(config.thresholds.severities.get("max-repetition"));
 
-        diagnostics.push(Diagnostic {
-            range: Range::new(Position::new(start_line, 0), Position::new(end_line, 80)),
-            severity: Some(severity),
-            message: format!(
+        diagnostics.push(create_diagnostic(
+            Range::new(Position::new(start_line, 0), Position::new(end_line, 80)),
+            severity,
+            format!(
                 "🍬 Sweet: Code duplication detected! (repeated in {} other places)",
                 duplicate.occurrences.len()
             ),
-            source: Some("sweet".to_string()),
-            related_information: Some(related_information),
-            data: Some(to_value("max-repetition").unwrap_or_default()),
-            ..Default::default()
-        });
+            "max-repetition",
+            Some(related_information),
+        ));
     }
 }
