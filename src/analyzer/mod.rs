@@ -143,7 +143,22 @@ pub fn analyze_content<S: BuildHasher>(
         repetition: repetition_percentage,
     };
 
-    let issues = collect_issues(&metrics, thresholds, config, disabled_rules);
+    let mut issues = collect_issues(&metrics, thresholds, config, disabled_rules);
+
+    // Specific lines where depth is exceeded.
+    if !disabled_rules.contains("max-depth") {
+        for (line, depth) in &deep_lines {
+            issues.push(crate::Issue {
+                message: format!(
+                    "Excessive nesting: {} levels (max {})",
+                    depth, thresholds.max_depth
+                ),
+                severity: config.thresholds.severities.get("max-depth"),
+                line: Some(*line),
+            });
+        }
+    }
+
     let is_sweet = issues.iter().all(|i| i.severity != crate::Severity::Error);
 
     let mut duplicates = Vec::new();
@@ -244,6 +259,7 @@ pub fn collect_issues<S: BuildHasher>(
                 metrics.lines, thresholds.max_lines
             ),
             severity: config.thresholds.severities.get("max-lines"),
+            line: None,
         });
     }
     if !disabled_rules.contains("max-imports") && metrics.imports > thresholds.max_imports {
@@ -253,15 +269,7 @@ pub fn collect_issues<S: BuildHasher>(
                 metrics.imports, thresholds.max_imports
             ),
             severity: config.thresholds.severities.get("max-imports"),
-        });
-    }
-    if !disabled_rules.contains("max-depth") && metrics.max_depth > thresholds.max_depth {
-        issues.push(crate::Issue {
-            message: format!(
-                "Excessive nesting: {} levels (max {})",
-                metrics.max_depth, thresholds.max_depth
-            ),
-            severity: config.thresholds.severities.get("max-depth"),
+            line: None,
         });
     }
     if !disabled_rules.contains("max-repetition") && metrics.repetition > thresholds.max_repetition
@@ -272,6 +280,7 @@ pub fn collect_issues<S: BuildHasher>(
                 metrics.repetition, thresholds.max_repetition
             ),
             severity: config.thresholds.severities.get("max-repetition"),
+            line: None,
         });
     }
 

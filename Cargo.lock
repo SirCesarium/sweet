@@ -2484,7 +2484,7 @@ checksum = "b7401a30af6cb5818bb64852270bb722533397edcfc7344954a38f420819ece2"
 
 [[package]]
 name = "swt"
-version = "5.0.0-rc.5"
+version = "5.0.0-rc.6"
 dependencies = [
  "assert_cmd",
  "clap",

@@ -27,6 +27,8 @@ pub struct Issue {
     pub message: String,
     /// Importance level.
     pub severity: Severity,
+    /// Line number where the issue occurs (optional).
+    pub line: Option<usize>,
 }
 
 /// Analysis results for a single source file.
@@ -47,6 +49,7 @@ pub struct FileReport {
     /// List of descriptive issue messages.
     pub issues: Vec<Issue>,
     /// Effective configuration used for this file.
+    #[serde(skip_serializing)]
     pub config: Option<Config>,
     /// Details about duplicated code chunks.
     pub duplicates: Vec<RepetitionDetail>,

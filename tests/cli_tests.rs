@@ -37,15 +37,17 @@ fn test_cli_violation_failure() {
 fn test_cli_json_output() {
     let dir = tempdir().expect("failed to create temp dir");
     let file_path = dir.path().join("test.rs");
-    fs::write(&file_path, "fn main() {}").expect("failed to write test file");
+    // Create a file with many lines to trigger a violation
+    let content = "fn main() {}\n".repeat(410);
+    fs::write(&file_path, content).expect("failed to write test file");
 
     let mut cmd = Command::cargo_bin("swt").expect("binary should exist");
     cmd.arg(dir.path())
         .arg("--json")
         .assert()
-        .success()
-        .stdout(predicate::str::contains("\"path\""))
-        .stdout(predicate::str::contains("\"is_sweet\": true"));
+        .failure()
+        .stdout(predicate::str::contains("\"line\": 1"))
+        .stdout(predicate::str::contains("\"message\": \"File too long"));
 }
 
 /// Tests that ignored files are not analyzed.

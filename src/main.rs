@@ -140,7 +140,7 @@ fn run_analysis(
     let bitter_count = reports.iter().filter(|r| !r.is_sweet).count();
 
     if let Some(json_opt) = json {
-        handle_json_reporting(&reports, json_opt.as_ref());
+        handle_json_reporting(&reports, json_opt.as_ref(), quiet);
     } else {
         print_reports(&reports, quiet, None);
     }
@@ -152,10 +152,49 @@ fn run_analysis(
     }
 }
 
-fn handle_json_reporting(reports: &[FileReport], json_opt: Option<&PathBuf>) {
+fn handle_json_reporting(reports: &[FileReport], json_opt: Option<&PathBuf>, _quiet: bool) {
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    let mut map = BTreeMap::new();
+
+    for report in reports {
+        let mut problems = Vec::new();
+
+        for issue in &report.issues {
+            problems.push(json!({
+                "line": issue.line.unwrap_or(1),
+                "message": issue.message
+            }));
+        }
+
+        for dup in &report.duplicates {
+            problems.push(json!({
+                "line": dup.line,
+                "message": format!(
+                    "Duplicate found. Also in: {}",
+                    dup.occurrences
+                        .iter()
+                        .map(|(p, l)| format!("{}:{}", p.display(), l))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }));
+        }
+
+        if !problems.is_empty() {
+            let value = if problems.len() == 1 {
+                problems[0].clone()
+            } else {
+                json!(problems)
+            };
+            map.insert(report.path.to_string_lossy().to_string(), value);
+        }
+    }
+
     if let Some(path) = json_opt {
-        write_json_report(reports, path);
-    } else if let Ok(json) = serde_json::to_string_pretty(&reports) {
+        write_json_report(&map, path);
+    } else if let Ok(json) = serde_json::to_string_pretty(&map) {
         println!("{json}");
     }
 }
